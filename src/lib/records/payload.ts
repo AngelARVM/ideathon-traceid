@@ -18,6 +18,7 @@
 import type { RecordType } from "@/generated/prisma/enums";
 import { MAX_PAYLOAD_BYTES } from "@/lib/stellar/contract-limits";
 import {
+  type Bytes,
   type CanonicalValue,
   canonicalByteLength,
   canonicalJson,
@@ -48,7 +49,7 @@ export interface PayloadInput {
    */
   seq: number;
   /** `null` solo para `seq = 1`, donde no hay antecesor. */
-  prevHash: Uint8Array | null;
+  prevHash: Bytes | null;
   data: Record<string, unknown>;
   schemaVersion?: number;
 }
@@ -56,10 +57,10 @@ export interface PayloadInput {
 export interface BuiltPayload {
   /** Los bytes exactos que se hashearon, guardados textuales para que todo sea reproducible. */
   canonicalPayload: string;
-  contentHash: Buffer;
+  contentHash: Bytes;
   byteLength: number;
   seq: number;
-  prevHash: Uint8Array | null;
+  prevHash: Bytes | null;
   terminal: boolean;
 }
 
@@ -73,7 +74,7 @@ export class PayloadTooLargeError extends Error {
 }
 
 /** El hash de 32 bytes en cero que representa "sin antecesor", para `seq = 1`. */
-export const GENESIS_PREV_HASH = new Uint8Array(32);
+export const GENESIS_PREV_HASH: Bytes = new Uint8Array(new ArrayBuffer(32));
 
 export function buildPayload(input: PayloadInput): BuiltPayload {
   const terminal = isTerminal(input.type);

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { bytesToHex } from "@/lib/records/canonical";
 import {
   buildPayload,
   GENESIS_PREV_HASH,
@@ -120,10 +121,7 @@ describe("seq y prev_hash", () => {
       type: "weighing",
       data: { weight_g: 1 },
     });
-    assert.notEqual(
-      a.contentHash.toString("hex"),
-      b.contentHash.toString("hex"),
-    );
+    assert.notEqual(bytesToHex(a.contentHash), bytesToHex(b.contentHash));
   });
 
   it("un prev_hash distinto produce un hash distinto", () => {
@@ -138,10 +136,7 @@ describe("seq y prev_hash", () => {
       type: "weighing",
       data: { weight_g: 1 },
     });
-    assert.notEqual(
-      a.contentHash.toString("hex"),
-      b.contentHash.toString("hex"),
-    );
+    assert.notEqual(bytesToHex(a.contentHash), bytesToHex(b.contentHash));
   });
 });
 
@@ -158,10 +153,7 @@ describe("recorded_at dentro del hash", () => {
       type: "weighing",
       data: { weight_g: 1 },
     });
-    assert.notEqual(
-      a.contentHash.toString("hex"),
-      b.contentHash.toString("hex"),
-    );
+    assert.notEqual(bytesToHex(a.contentHash), bytesToHex(b.contentHash));
   });
 
   it("dos construcciones identicas dan el mismo hash: reintentar es seguro", () => {
@@ -175,7 +167,7 @@ describe("recorded_at dentro del hash", () => {
       type: "weighing",
       data: { weight_g: 1 },
     });
-    assert.equal(a.contentHash.toString("hex"), b.contentHash.toString("hex"));
+    assert.equal(bytesToHex(a.contentHash), bytesToHex(b.contentHash));
     assert.equal(a.canonicalPayload, b.canonicalPayload);
   });
 });

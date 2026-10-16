@@ -21,6 +21,13 @@ export type CanonicalValue =
   | null
   | undefined;
 
+/**
+ * Bytes respaldados por un `ArrayBuffer` propio. El tipo explícito existe porque es lo que
+ * piden las columnas `Bytes` de Prisma: un `Buffer` de Node no califica, su respaldo puede ser
+ * un `SharedArrayBuffer`.
+ */
+export type Bytes = Uint8Array<ArrayBuffer>;
+
 export class CanonicalizationError extends Error {
   readonly path: string;
 
@@ -112,13 +119,26 @@ export function canonicalJson(
   return encode(payload, "");
 }
 
-/** `sha256(canonical_json(payload))`. */
-export function contentHash(canonicalPayload: string): Buffer {
-  return createHash("sha256").update(canonicalPayload, "utf8").digest();
+/**
+ * `sha256(canonical_json(payload))`.
+ *
+ * Devuelve `Uint8Array` y no `Buffer` porque es lo que esperan tanto las columnas `Bytes` de
+ * Prisma como `BytesN<32>` del contrato.
+ */
+export function contentHash(canonicalPayload: string): Bytes {
+  const digest = createHash("sha256").update(canonicalPayload, "utf8").digest();
+  const out = new Uint8Array(new ArrayBuffer(digest.byteLength));
+  out.set(digest);
+  return out;
 }
 
 export function contentHashHex(canonicalPayload: string): string {
-  return contentHash(canonicalPayload).toString("hex");
+  return bytesToHex(contentHash(canonicalPayload));
+}
+
+/** Hex minúscula, el formato en el que los hashes se muestran y se pasan a la CLI. */
+export function bytesToHex(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString("hex");
 }
 
 /** Los bytes que realmente se envían al contrato, para medirlos contra `MAX_PAYLOAD_BYTES`. */

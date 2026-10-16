@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertTriangle, Building2, ChevronRight, Skull } from "lucide-react";
 import Link from "next/link";
 import { useActionState } from "react";
 import { type ActionState, appendRecordAction } from "@/app/animals/actions";
@@ -11,6 +12,7 @@ import {
   SubmitButton,
 } from "@/app/animals/form-ui";
 import { NewIdField } from "@/components/NewIdField";
+import { RecordTypeIcon } from "@/components/RecordTypeIcon";
 import type { RecordType } from "@/generated/prisma/enums";
 import { RECORD_TYPES, SELECTABLE_RECORD_TYPES } from "@/lib/records/types";
 
@@ -30,21 +32,64 @@ export function NewRecordForm({
 
   if (!type) {
     return (
-      <ul className="mt-6 space-y-2">
-        {SELECTABLE_RECORD_TYPES.map((candidate) => (
-          <li key={candidate}>
+      <div>
+        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {SELECTABLE_RECORD_TYPES.map((candidate) => (
+            <li key={candidate}>
+              <Link
+                href={`/animals/${animalId}/records/new?tipo=${candidate}`}
+                className="flex h-full min-h-28 flex-col justify-between rounded-2xl border border-stone-200 bg-white p-4 transition hover:border-campo-500 hover:bg-campo-50/50 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-campo-700 dark:hover:bg-campo-950/20"
+              >
+                <RecordTypeIcon type={candidate} />
+                <p className="mt-3 text-sm font-bold">
+                  {RECORD_TYPES[candidate].label}
+                </p>
+                <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+                  {RECORD_TYPES[candidate].hint}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-6 border-t border-stone-100 pt-5 dark:border-stone-800">
+          <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+            <AlertTriangle className="h-4 w-4" aria-hidden /> Cierra la cadena ·
+            irreversible
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
             <Link
-              href={`/animals/${animalId}/records/new?tipo=${candidate}`}
-              className="block rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 hover:border-campo-400 dark:hover:border-campo-700"
+              href={`/animals/${animalId}/close?tipo=slaughterhouse_delivery`}
+              className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-rose-50/40 p-4 transition hover:border-rose-500 dark:border-rose-900 dark:bg-rose-950/20"
             >
-              <p className="font-semibold">{RECORD_TYPES[candidate].label}</p>
-              <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-400">
-                {RECORD_TYPES[candidate].hint}
-              </p>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-900 text-white">
+                <Building2 className="h-5 w-5" aria-hidden />
+              </span>
+              <span className="flex-1">
+                <strong className="block text-sm">Entrega a frigorífico</strong>
+                <small className="text-xs text-stone-500 dark:text-stone-400">
+                  Fin del seguimiento
+                </small>
+              </span>
+              <ChevronRight className="h-4 w-4 text-stone-400" aria-hidden />
             </Link>
-          </li>
-        ))}
-      </ul>
+            <Link
+              href={`/animals/${animalId}/close?tipo=death`}
+              className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-rose-50/40 p-4 transition hover:border-rose-500 dark:border-rose-900 dark:bg-rose-950/20"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white">
+                <Skull className="h-5 w-5" aria-hidden />
+              </span>
+              <span className="flex-1">
+                <strong className="block text-sm">Muerte</strong>
+                <small className="text-xs text-stone-500 dark:text-stone-400">
+                  Baja biológica
+                </small>
+              </span>
+              <ChevronRight className="h-4 w-4 text-stone-400" aria-hidden />
+            </Link>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -66,17 +111,20 @@ function TypeForm({ animalId, type }: { animalId: string; type: RecordType }) {
 
       <FormError state={state} />
 
-      <div className="rounded-xl bg-stone-100 dark:bg-stone-800/60 px-3 py-2.5">
-        <p className="text-sm font-semibold">{meta.label}</p>
-        <p className="text-xs text-stone-600 dark:text-stone-400">
-          {meta.hint}
-        </p>
-        <Link
-          href={`/animals/${animalId}/records/new`}
-          className="mt-1 inline-block text-xs text-campo-700 dark:text-campo-300 hover:underline"
-        >
-          Cambiar tipo
-        </Link>
+      <div className="flex items-start gap-3 rounded-2xl border border-campo-200 bg-campo-50 p-3.5 dark:border-campo-800 dark:bg-campo-950/40">
+        <RecordTypeIcon type={type} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold">{meta.label}</p>
+          <p className="text-xs text-stone-600 dark:text-stone-400">
+            {meta.hint}
+          </p>
+          <Link
+            href={`/animals/${animalId}/records/new`}
+            className="mt-1 inline-block text-xs font-semibold text-campo-700 hover:underline dark:text-campo-300"
+          >
+            Cambiar tipo
+          </Link>
+        </div>
       </div>
 
       <TypeFields type={type} />

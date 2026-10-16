@@ -3,9 +3,10 @@ import type { ActionState } from "./actions";
 
 /** Clases compartidas por los formularios del operador, mobile-first (docs/03). */
 export const field =
-  "mt-1 w-full h-11 px-3 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm";
+  "mt-1.5 h-12 w-full rounded-xl border border-stone-300 bg-stone-50 px-3 text-sm text-stone-900 focus:border-campo-500 focus:outline-none focus:ring-2 focus:ring-campo-600/20 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100";
 
-export const label = "block text-sm font-semibold";
+export const label =
+  "block text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300";
 
 /** El aviso que acompaña a todo campo de texto libre (docs/05). */
 export const personalDataHint = "No ingrese datos personales.";
@@ -41,7 +42,7 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      className={`w-full h-12 rounded-xl text-white font-semibold disabled:opacity-60 ${tones[tone]}`}
+      className={`h-14 w-full rounded-2xl text-base font-bold text-white shadow-lg shadow-campo-950/15 transition disabled:opacity-60 ${tones[tone]}`}
     >
       {pending ? "Guardando…" : children}
     </button>

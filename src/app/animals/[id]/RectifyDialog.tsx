@@ -1,5 +1,6 @@
 "use client";
 
+import { PencilLine, X } from "lucide-react";
 import { useActionState, useState } from "react";
 import { type ActionState, rectifyAction } from "@/app/animals/actions";
 import {
@@ -40,8 +41,9 @@ export function RectifyDialog({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 text-xs font-semibold text-campo-700 dark:text-campo-300 hover:underline"
+        className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-campo-700 transition hover:bg-campo-50 dark:text-campo-300 dark:hover:bg-campo-950/50"
       >
+        <PencilLine className="h-3.5 w-3.5" aria-hidden />
         Rectificar este registro
         {chainClosed ? " (la cadena está cerrada, igual se puede)" : ""}
       </button>
@@ -51,7 +53,7 @@ export function RectifyDialog({
   return (
     <form
       action={action}
-      className="mt-3 pt-3 border-t border-stone-100 dark:border-stone-800 space-y-3"
+      className="mt-4 space-y-4 rounded-2xl border border-campo-200 bg-campo-50/50 p-4 dark:border-campo-800 dark:bg-campo-950/20"
     >
       <input type="hidden" name="animalId" value={animalId} />
       <input type="hidden" name="rectifiesRecordId" value={recordId} />
@@ -66,7 +68,8 @@ export function RectifyDialog({
 
       <FormError state={state} />
 
-      <p className="text-sm font-semibold">
+      <p className="flex items-center gap-2 text-sm font-bold text-campo-900 dark:text-campo-200">
+        <PencilLine className="h-4 w-4" aria-hidden />
         Rectificar #{seq} · {typeLabel}
       </p>
       <div>
@@ -88,15 +91,16 @@ export function RectifyDialog({
         </p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 sm:flex-nowrap">
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="h-11 px-4 rounded-xl border border-stone-300 dark:border-stone-700 text-sm font-medium"
+          className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-4 text-sm font-semibold transition hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-800"
         >
+          <X className="h-4 w-4" aria-hidden />
           Cancelar
         </button>
-        <div className="flex-1">
+        <div className="min-w-48 flex-1">
           <SubmitButton pending={pending}>Registrar rectificación</SubmitButton>
         </div>
       </div>

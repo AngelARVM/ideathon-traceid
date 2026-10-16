@@ -51,7 +51,7 @@ export function RecordStatusBadge({
   return (
     <span
       title={state.hint}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs font-semibold ${state.className} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${state.className} ${className}`}
     >
       <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
       {state.label}

@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { type SignInState, signIn } from "@/lib/auth-actions";
 
 const inputClass =
-  "w-full h-12 px-4 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-base focus:outline-none focus:ring-2 focus:ring-campo-600";
+  "w-full h-12 pl-10 pr-4 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-base focus:outline-none focus:ring-2 focus:ring-campo-600";
 
 export function LoginForm() {
   const next = useSearchParams().get("next") ?? "";
@@ -28,42 +28,69 @@ export function LoginForm() {
       )}
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium mb-1.5">
+        <label
+          htmlFor="email"
+          className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300"
+        >
           Email
         </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="username"
-          required
-          defaultValue={state.email}
-          className={inputClass}
-        />
+        <div className="relative">
+          <input
+            id="email"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="username"
+            required
+            defaultValue={state.email}
+            className={inputClass}
+          />
+          <Mail
+            className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-stone-400"
+            aria-hidden
+          />
+        </div>
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium mb-1.5">
+        <label
+          htmlFor="password"
+          className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300"
+        >
           Contraseña
         </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className={inputClass}
-        />
+        <div className="relative">
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            className={inputClass}
+          />
+          <KeyRound
+            className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-stone-400"
+            aria-hidden
+          />
+        </div>
       </div>
 
       <button
         type="submit"
         disabled={pending}
-        className="w-full h-12 rounded-xl bg-campo-600 hover:bg-campo-700 text-white font-semibold disabled:opacity-60"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-campo-600 font-semibold text-white shadow-md shadow-campo-950/15 transition hover:bg-campo-700 disabled:opacity-60"
       >
-        {pending ? "Ingresando…" : "Ingresar"}
+        {pending ? (
+          "Ingresando…"
+        ) : (
+          <>
+            <span>Ingresar al sistema</span>
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </>
+        )}
       </button>
     </form>
   );
 }
+
+import { ArrowRight, KeyRound, Mail } from "lucide-react";

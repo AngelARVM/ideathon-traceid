@@ -33,29 +33,38 @@ export default async function NewRecordPage({
   const active = animal.identifiers.find((i) => i.replacedAt === null) ?? null;
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 sm:py-10">
+    <div className="mx-auto max-w-2xl px-4 pb-20 pt-6">
       <Link
         href={`/animals/${animal.id}`}
-        className="text-sm text-campo-700 dark:text-campo-300 hover:underline"
+        className="inline-flex items-center gap-1.5 rounded-xl bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-600 transition hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
       >
-        ← Detalle
+        <ArrowLeft className="h-4 w-4" aria-hidden /> Volver al animal
       </Link>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight">Nuevo hito</h1>
-      <p className="mt-1 text-sm text-stone-600 dark:text-stone-400 font-mono-num">
-        {active?.identifier ?? animal.id}
-      </p>
+      <div className="mt-4 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900 sm:p-8">
+        <header className="border-b border-stone-100 pb-5 dark:border-stone-800">
+          <span className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+            Nuevo hito · Caravana {active?.identifier ?? animal.id}
+          </span>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">Nuevo hito</h1>
+          <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+            Elegí el tipo de hito y completá sus datos.
+          </p>
+        </header>
 
-      {animal.chainStatus === "closed" ? (
-        <p className="mt-8 rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2.5 text-sm">
-          La cadena de este animal está cerrada. Solo se pueden registrar
-          rectificaciones, desde el registro que se quiera corregir.
-        </p>
-      ) : (
-        <NewRecordForm
-          animalId={animal.id}
-          selected={typeof tipo === "string" ? tipo : null}
-        />
-      )}
+        {animal.chainStatus === "closed" ? (
+          <p className="mt-8 rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2.5 text-sm">
+            La cadena de este animal está cerrada. Solo se pueden registrar
+            rectificaciones, desde el registro que se quiera corregir.
+          </p>
+        ) : (
+          <NewRecordForm
+            animalId={animal.id}
+            selected={typeof tipo === "string" ? tipo : null}
+          />
+        )}
+      </div>
     </div>
   );
 }
+
+import { ArrowLeft } from "lucide-react";

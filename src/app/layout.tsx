@@ -18,11 +18,19 @@ const plexMono = IBM_Plex_Mono({
 });
 
 const description =
-  "Trazabilidad individual de ganado bovino anclada en Stellar para productores del nordeste argentino.";
+  "TraceID: registro individual de ganado bovino para productores del nordeste argentino.";
 
 export const metadata: Metadata = {
-  title: { default: "TraceID", template: "%s · TraceID" },
+  title: {
+    default: "TraceID · Trazabilidad Bovina NEA",
+    template: "%s · TraceID",
+  },
   description,
+  openGraph: {
+    title: "TraceID · Trazabilidad Bovina NEA",
+    description,
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {
@@ -34,7 +42,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${jakarta.variable} ${plexMono.variable}`}>
-      <body className="min-h-dvh flex flex-col bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100 font-sans antialiased selection:bg-campo-600 selection:text-white">
+      <body className="min-h-dvh flex flex-col bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100 font-sans antialiased selection:bg-campo-200 dark:selection:bg-campo-900/60">
         <EnvironmentBanner />
         <SiteHeader />
         <main className="flex-1 w-full">{children}</main>

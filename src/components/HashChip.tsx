@@ -26,7 +26,7 @@ export function HashChip({
       ) : null}
       <code
         title={value}
-        className="font-mono-num text-xs bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded truncate"
+        className="font-mono-num truncate rounded-lg bg-stone-100 px-2 py-1 text-xs text-stone-700 dark:bg-stone-800 dark:text-stone-200"
       >
         {value.length > 20 ? `${value.slice(0, 10)}…${value.slice(-6)}` : value}
       </code>

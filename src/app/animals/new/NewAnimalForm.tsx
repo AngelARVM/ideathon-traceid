@@ -78,7 +78,7 @@ export function NewAnimalForm({
 
       <div>
         <label htmlFor="identifier" className={label}>
-          Identificador de la caravana
+          Identificador de la caravana *
         </label>
         <input
           id="identifier"
@@ -87,20 +87,24 @@ export function NewAnimalForm({
           inputMode="numeric"
           autoComplete="off"
           placeholder="032 02 1234567890"
-          className={`${field} font-mono-num`}
+          className={`${field} font-mono-num text-lg font-bold`}
         />
         <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
           Se guarda como texto, con los ceros a la izquierda. Si el formato no
           coincide con el CII de 15 dígitos ni con la caravana impresa, se
           guarda igual y queda marcado.
         </p>
-        <label className="mt-2 flex items-center gap-2 text-sm">
-          <input type="checkbox" name="internalTag" className="rounded" />
+        <label className="mt-3 flex items-center gap-2 rounded-xl bg-stone-50 px-3 py-2.5 text-sm dark:bg-stone-800/60">
+          <input
+            type="checkbox"
+            name="internalTag"
+            className="h-4 w-4 rounded accent-campo-600"
+          />
           Es una caravana interna, no un identificador oficial
         </label>
       </div>
 
-      <div>
+      <div className="border-t border-stone-100 pt-5 dark:border-stone-800">
         <label htmlFor="establishmentId" className={label}>
           Establecimiento
         </label>
@@ -156,7 +160,7 @@ export function NewAnimalForm({
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid gap-4 border-t border-stone-100 pt-5 dark:border-stone-800 sm:grid-cols-2">
         <div>
           <label htmlFor="birthDate" className={label}>
             Fecha de nacimiento{" "}

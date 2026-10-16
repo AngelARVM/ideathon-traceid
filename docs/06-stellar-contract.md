@@ -116,6 +116,41 @@ fn extend_ttl(env, animal_id: BytesN<16>, from_seq: u32, limit: u32)
 `get_*` are read-only simulations — the public history page calls them via RPC simulation and
 pays nothing.
 
+### As implemented (S3)
+
+The crate lives at `contracts/traceid/` (`soroban-sdk` 29.0.1, matching Testnet protocol 29).
+It follows the interface above with these deliberate deviations:
+
+| Proposed | Implemented | Why |
+|---|---|---|
+| `init(admin, writers)` | `__constructor(admin, writers)`, args passed at `stellar contract deploy` | Runs atomically at deploy: no window where someone else can call `init` first, and no re-init path to guard. An empty `writers` aborts the deploy. |
+| Mutating calls take no caller | `create_chain`, `append_record`, `close_chain` take `writer: Address` as first argument | `require_auth()` needs an address; the contract then checks it is in `Writers`. |
+| `kind` accepted as-is | `append_record` rejects `Terminal` (`TerminalViaAppend`) | A terminal record must close the chain atomically, so it can only come through `close_chain`. |
+| `content_hash` opaque | Contract checks `content_hash == sha256(payload)` (`HashMismatch`) | Costs one host call, needs no JSON parsing, and makes a mislabelled hash impossible to anchor. |
+| — | Payload must be 1..=8,192 bytes (`InvalidPayload`) | Keeps every entry far below 64 KiB. |
+| `extend_ttl` admin-only | `extend_ttl` is permissionless | Anyone can already extend any entry natively (`ExtendFootprintTTLOp`); gating it protects nothing. |
+| `Writers` amendable? (Pending) | **Fixed at deploy.** No `set_writers` | The stronger promise. Rotating a key means a new contract and a re-seed. |
+| — | `admin()` and `writers()` read-only getters | Lets anyone check who is authorized. |
+
+`create_chain` writes seq 1 with `prev_hash` = 32 zero bytes and kind `Ordinary`.
+`get_records(from_seq, limit)` returns `min(limit, 50)` records; `from_seq == count + 1` returns
+an empty page and is how a reader knows it has finished. Every write bumps the record, the header
+and the instance to `max_ttl` (the network maximum, read at runtime).
+
+Errors (`contracterror`, numbered as the CLI reports them): `1 NotWriter`, `2 ChainExists`,
+`3 ChainNotFound`, `4 PrevHashMismatch`, `5 RecordExists`, `6 ChainClosed`,
+`7 TerminalViaAppend`, `8 HashMismatch`, `9 InvalidPayload`, `10 RecordNotFound`,
+`11 InvalidLimit`, `12 NoWriters`.
+
+Events: `record_appended` (topic `animal_id`; data `seq`, `content_hash`, `kind`) on every write,
+and `chain_closed` (topic `animal_id`; data `seq`) on close. They are a convenience for indexers.
+Verification reads storage and never depends on them.
+
+**`animal_id` encoding:** `BytesN<16>` holds the ULID's 128-bit value, big-endian, i.e. the
+26-character Crockford base32 string decoded to 16 bytes. On the CLI it is 32 lowercase hex
+characters. `author` uses the same encoding. The TypeScript codec and its round-trip test belong
+to S4.
+
 ### The five enforced invariants
 
 The contract is **type-blind** (document 04, D9) and enforces only structure:
@@ -205,12 +240,13 @@ fixtures come back. This is stated in the UI's environment banner, not just in t
   before any claim about the cost of a 20-record animal.
 - **Measured append latency** (submission to confirmation), which determines whether the
   `pending → confirmed` UI needs polling, streaming or a refresh button (document 03, Pending).
-- **Whether `Writers` should be amendable by the admin after init.** Amendable is operationally
-  convenient; fixed-at-init is a stronger promise. Not decided.
+- ~~Whether `Writers` should be amendable after init.~~ **Resolved in S3: fixed at deploy**
+  (see "As implemented").
 - **Restoration runbook.** The mechanics of restoring an archived chain across multiple
   transactions are understood in principle but not written as a tested procedure.
 - **Internal cap for `get_records` `limit`.** Must stay inside the read resource limits of a
-  single simulation; the value needs measurement.
-- **`BytesN<16>` vs. `String` for `animal_id`.** A 16-byte ULID keeps keys small, but the
-  application's ULID is a 26-character string; the encode/decode boundary must be exact and
-  tested, or keys will silently diverge between writer and reader.
+  single simulation. Set to **50** provisionally (`MAX_PAGE`); confirm it on Testnet with
+  maximum-size payloads.
+- **`BytesN<16>` vs. `String` for `animal_id`.** Contract side resolved: `BytesN<16>` holding
+  the ULID's big-endian 128-bit value. Still open: the TypeScript codec and its round-trip test
+  (S4). Until that exists, writer and reader keys can silently diverge.

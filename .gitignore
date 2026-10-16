@@ -45,3 +45,6 @@ next-env.d.ts
 skills-lock.json
 # prisma client (generado por `prisma generate`)
 /src/generated/
+# rust / soroban
+/contracts/*/target/
+/contracts/*/test_snapshots/

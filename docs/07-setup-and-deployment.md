@@ -179,8 +179,9 @@ renders:
 
 1. Log in with a seeded user.
 2. Create an animal (`/animals/new`) with a baseline diet.
-3. Watch the record go `pending` → `confirmed`. If a manual drainer run is required, run
-   `npm run outbox:drain` *(to be verified, S4)*.
+3. Watch the record go `pending` → `confirmed`. This needs a drainer run: `npm run outbox:drain`,
+   or the "Procesar cola" button in the operator UI. In S2 the drainer confirms without touching
+   Soroban; from S4 on it submits for real.
 4. Open the record's verification detail and copy the `tx_hash`.
 5. Open `https://stellar.expert/explorer/testnet/tx/<TX_HASH>` and confirm the transaction
    exists, succeeded, and invoked your contract id.
@@ -314,8 +315,9 @@ nothing else needs configuring beyond `AUTH_SECRET` (and `AUTH_URL` off `localho
 - **Exact tool versions.** Pinned in S3: Rust 1.99.1, `soroban-sdk` 29.0.1, `wasm32v1-none`,
   contract tests green. Still open: the exact Stellar CLI version used for the first Testnet
   deploy.
-- **Whether the drainer runs as a script, a dev-mode loop or a worker** — determines whether
-  section 9 step 3 needs a manual command at all.
+- *Resolved in S2:* the drainer is a manually run script, `npm run outbox:drain`, so section 9
+  step 3 **does** need a manual command — or the "Procesar cola" button in the operator UI,
+  which is the same invocation.
 - **Script names** (`db:migrate`, `db:seed`, `seed:chain`, `outbox:drain`, `reconcile`,
   `ttl:extend`) are proposed, not implemented; they are added to `package.json` in the stage that
   creates each one.

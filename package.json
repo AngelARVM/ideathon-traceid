@@ -9,12 +9,14 @@
     "lint": "biome check",
     "format": "biome format --write",
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "postinstall": "prisma generate",
-    "db:migrate:dev": "prisma migrate dev"
+    "db:migrate:dev": "prisma migrate dev",
+    "outbox:drain": "tsx --env-file-if-exists=.env.local scripts/drain.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

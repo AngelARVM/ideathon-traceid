@@ -16,7 +16,8 @@ history**.
 Each record type has its own fields and validations. Every record carries: unique identifier;
 animal; type and schema version; date-time of the declared fact; date-time of incorporation;
 author; type-specific data; sequence and reference to the previous record; content hash and
-Stellar operation references; and a terminal indicator where applicable.
+network operation references (Hedera since ADR-0003; the brief says Stellar); and a terminal
+indicator where applicable.
 
 **Public vs. private:** reading the traceability history is public. Credentials, authentication
 data, personal contacts and other private administrative information must not be published on
@@ -122,7 +123,9 @@ lot changes never mutate identity or history.
 | `seq` | nullable until the contract assigns it |
 | `prev_hash` | nullable until submission |
 | `status` | `pending` \| `submitted` \| `confirmed` \| `failed` |
-| `tx_hash`, `ledger` | nullable, transaction metadata — **never hashed** |
+| `tx_id` | nullable, Hedera transaction ID `0.0.<payer>@<seconds>.<nanos>` — **never hashed** |
+| `tx_hash` | nullable, EVM-style transaction hash reported by the mirror — **never hashed** |
+| `consensus_timestamp` | nullable, text `<seconds>.<nanos>` — **never hashed**. Replaces `ledger` (S4 migration) |
 | `created_at` | — |
 
 **`outbox`** — `id`, `record_id` (unique, the dedupe key), `attempts`, `last_error`,
@@ -157,9 +160,14 @@ data
 + rectifies_record_id, reason   (rectification only)
 ```
 
-**Explicitly excluded from the hash:** `tx_hash`, `ledger`, and any PostgreSQL-side status. This
+**Explicitly excluded from the hash:** `tx_id`, `tx_hash`, `consensus_timestamp`, and any
+PostgreSQL-side status. This
 is what avoids the circular dependency the brief warns about — a transaction hash cannot be
 inside the content that produces that transaction.
+
+**Size cap:** the canonical payload must be **1..=4,096 bytes** (UTF-8), enforced by the server
+before enqueueing and again by the contract (document 06). With the field caps below, the largest
+realistic record is well under 2 KiB even with multi-byte characters.
 
 Two consequences to hold on to:
 
@@ -175,11 +183,11 @@ Two consequences to hold on to:
 
 | Data | Source | If unavailable |
 |---|---|---|
-| Record payload, `content_hash`, `seq`, `prev_hash`, `terminal`, closed flag | **Contract storage** — reconstructible for the animal's whole life, paginated by `seq` | Verification fails loudly |
-| `tx_hash`, ledger sequence, explorer link | Transaction metadata, from RPC at submission time, mirrored in PostgreSQL | Displayed labelled as unverified metadata (document 04, Pending) |
+| Record payload, `content_hash`, `seq`, `prev_hash`, `terminal`, closed flag | **Contract storage**, read through the mirror node's `contracts/call` — reconstructible for the animal's whole life, paginated by `seq` | Verification fails loudly |
+| `tx_id`, `tx_hash`, consensus timestamp, HashScan link | Transaction metadata, from the receipt at submission time, mirrored in PostgreSQL, re-readable from the mirror's contract results | Displayed labelled as unverified metadata |
 
-The brief's constraint that the history must not depend on recent RPC events is satisfied
-because reconstruction reads contract **storage**, never an event stream.
+The brief's constraint that the history must not depend on recent events is satisfied because
+reconstruction reads contract **storage**, never an event stream.
 
 ### Record types and per-type schemas (`schema_version: 1`)
 

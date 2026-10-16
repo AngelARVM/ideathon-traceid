@@ -2,12 +2,13 @@
 
 ## Confirmed
 
-**All prerequisites must be explained step by step, assuming no prior experience with Stellar.**
+**All prerequisites must be explained step by step, assuming no prior experience with the
+network** (Hedera since ADR-0003; the brief says Stellar).
 
 Must be documented: compatible tool versions; local installation and execution; Docker Compose,
-PostgreSQL connection, migrations and demo data; Stellar Testnet account and key creation; test
-funding via Friendbot; RPC, network identifier and other required endpoints; contract
-compilation, deployment and initialization; obtaining and configuring the contract identifier;
+PostgreSQL connection, migrations and demo data; Testnet account and key creation; test
+funding (on Hedera: the Developer Portal faucet, which replaces Friendbot); network identifier,
+mirror node and other required endpoints; contract compilation, deployment and initialization; obtaining and configuring the contract identifier;
 authentication configuration; manual application startup and deployment; verification of a real
 operation on Testnet; and recovery of the demo after a Testnet reset.
 
@@ -34,17 +35,15 @@ of history.**
 | Node.js | ≥ 20.12 LTS | Next.js 16 runtime; `process.loadEnvFile` in `prisma.config.ts` | [nodejs.org](https://nodejs.org) |
 | npm | bundled with Node | The repo has `package-lock.json`, so npm is the package manager | — |
 | Docker + Docker Compose | current stable | Runs PostgreSQL locally | [docs.docker.com](https://docs.docker.com/get-docker/) |
-| Rust toolchain | stable ≥ 1.84 (verified with 1.99.1) | Compiles the Soroban contract | [rustup.rs](https://rustup.rs) |
-| `wasm32v1-none` Rust target | matching toolchain | The only Wasm target Soroban accepts | `rustup target add wasm32v1-none` |
-| `soroban-sdk` | 29.0.1 (pinned in `contracts/traceid/Cargo.toml`) | Contract SDK; its major version must match the network protocol (Testnet: 29) | crates.io |
-| Stellar CLI | **≥ 25.2.0** (`soroban-sdk` 29 refuses to build a contract without it) | Builds, deploys and invokes the contract | [developers.stellar.org](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup) |
+| Foundry (`forge`, `cast`) | stable, pinned in S3 | Compiles, tests and deploys the Solidity contract; `cast` reads it from a terminal | [getfoundry.sh](https://getfoundry.sh) |
+| Solidity compiler | `0.8.x`, pinned in `contracts/traceid/foundry.toml` | Fetched by Foundry automatically | — |
 
-> **Windows without Visual Studio:** use the GNU toolchain, which needs no MSVC Build Tools:
-> `rustup toolchain install stable-x86_64-pc-windows-gnu`, then
-> `rustup default stable-x86_64-pc-windows-gnu`. Contract tests: `cd contracts/traceid && cargo test`.
+> **Windows:** Foundry runs natively via `foundryup` on Git Bash, or inside WSL. Contract tests:
+> `cd contracts/traceid && forge test`.
 
 No account on any paid service is required. There is **no API key** anywhere in this project:
-Stellar Testnet RPC and Friendbot are public and unauthenticated.
+the Hedera Testnet mirror node and the Hashio JSON-RPC relay are public and unauthenticated. The
+only sign-up is a free Hedera Developer Portal account, which creates the Testnet account itself.
 
 ### 1 — Clone and install
 
@@ -91,32 +90,24 @@ which is git-ignored. When the schema changes: edit `prisma/schema.prisma`, run
 `npm run db:migrate:dev -- --name <change>` (creates and applies the migration and regenerates the
 client), and commit the new folder in `prisma/migrations/`.
 
-### 5 — Create a Stellar Testnet account
+### 5 — Create a Hedera Testnet account
 
-A Stellar account is a keypair: a **public key** starting with `G…` (safe to share, it is an
-address) and a **secret key** starting with `S…` (**never** share, never commit, never put in
-client code).
+A Hedera account has an **account ID** of the form `0.0.12345` (public, an address), an **EVM
+address** `0x…` derived from its key (public), and a **private key** (**never** share, never
+commit, never put in client code). TraceID needs an **ECDSA** (secp256k1) key, because the
+contract authorizes callers by EVM address and Foundry signs with ECDSA.
 
-```bash
-stellar keys generate --global traceid-writer --network testnet
-stellar keys address traceid-writer      # prints the G… public key
-```
+1. Sign up at [portal.hedera.com](https://portal.hedera.com) and choose **Testnet**.
+2. Create an account with an **ECDSA** key. The portal shows the account ID, the EVM address and
+   the hex-encoded private key, and funds the account with test HBAR.
+3. Copy the three values into `.env.local` (section *Environment variables*).
 
-The `--network testnet` flag funds the account automatically via Friendbot. To fund manually, or
-to re-fund after a reset:
+To top up after use or after a reset, use the portal's faucet
+([portal.hedera.com/faucet](https://portal.hedera.com/faucet)). Testnet HBAR has no monetary value
+and exists only to pay fees in a test environment.
 
-```bash
-curl "https://friendbot.stellar.org/?addr=<YOUR_G_PUBLIC_KEY>"
-```
-
-Friendbot is a free Testnet faucet. Testnet XLM has no monetary value and exists only to pay
-transaction fees in a test environment.
-
-To read the secret key for the `.env` file:
-
-```bash
-stellar keys show traceid-writer         # prints the S… secret key — handle carefully
-```
+After a Testnet reset the account no longer exists; create a new one the same way (the key pair
+may be reused only if the portal offers it).
 
 ### 6 — Network endpoints
 
@@ -124,38 +115,41 @@ These are public, documented values — not credentials:
 
 | Setting | Testnet value |
 |---|---|
-| RPC URL | `https://soroban-testnet.stellar.org` |
-| Network passphrase | `Test SDF Network ; September 2015` |
-| Friendbot | `https://friendbot.stellar.org` |
-| Explorer | `https://stellar.expert/explorer/testnet` |
+| Network name (SDK) | `testnet` |
+| Mirror node REST | `https://testnet.mirrornode.hedera.com` |
+| JSON-RPC relay (Hashio) — deploy and `cast` only | `https://testnet.hashio.io/api` |
+| EVM chain id | `296` |
+| Explorer | `https://hashscan.io/testnet` |
 
-The network passphrase must match the network exactly; a mismatch produces signature errors that
-look like authorization failures.
+The application never needs the JSON-RPC relay: writes go to consensus nodes through
+`@hashgraph/sdk` (which knows the Testnet node list), and reads go to the mirror node.
 
-### 7 — Build, deploy and initialize the contract
+### 7 — Build, test and deploy the contract
 
-From `contracts/traceid/`:
+From `contracts/traceid/` (the Foundry project that replaces the Soroban crate, ADR-0003):
 
 ```bash
-cargo test                 # 21 tests, one or more per invariant
-stellar contract build
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/traceid.wasm \
-  --source-account traceid-writer \
-  --network testnet \
-  -- \
-  --admin <G_PUBLIC_KEY> \
-  --writers '["<G_PUBLIC_KEY>"]'
+forge test                                     # one or more tests per invariant (document 09, A3)
+forge build
+forge create src/TraceId.sol:TraceId \
+  --rpc-url https://testnet.hashio.io/api \
+  --private-key $HEDERA_OPERATOR_KEY \
+  --broadcast \
+  --constructor-args '[<YOUR_EVM_ADDRESS>]'     # the writer set, fixed forever
 ```
 
-The contract has no separate `init`. Its constructor runs atomically inside the deploy with the
-arguments after `--`, which register the admin and the authorized writer set. The writer set
-cannot be changed afterwards. The deploy prints the **contract id** (`C…`). Copy it into
-`.env.local` as `STELLAR_CONTRACT_ID`.
+`forge create` prints the contract's **EVM address** (`0x…`). Look it up on HashScan
+(`https://hashscan.io/testnet/contract/<EVM_ADDRESS>`) to get its **contract ID** (`0.0.…`).
+Copy both into `.env.local` as `HEDERA_CONTRACT_EVM_ADDRESS` and `HEDERA_CONTRACT_ID`.
 
-A full CLI walkthrough is in `contracts/traceid/README.md`: create, append, paginate, close, and
-watch each invariant reject. Because the contract is **non-upgradeable** (document 06), fixing
-a contract bug means repeating this whole section with a fresh contract id and re-seeding.
+There is no `init`: the constructor registers the writer set atomically at deploy, and it cannot
+be changed afterwards. A contract created through the EVM path has **no Hedera admin key**, so it
+cannot be updated or deleted *(to be verified on HashScan at the first deploy — the contract's
+admin key must show as empty)*. Because the contract is **non-upgradeable** (document 06), fixing
+a contract bug means repeating this section with a fresh contract and re-seeding.
+
+A full terminal walkthrough — create, append, paginate, close, and watch each invariant reject —
+goes in `contracts/traceid/README.md` (S3).
 
 ### 8 — Start the application
 
@@ -181,17 +175,24 @@ renders:
 2. Create an animal (`/animals/new`) with a baseline diet.
 3. Watch the record go `pending` → `confirmed`. This needs a drainer run: `npm run outbox:drain`,
    or the "Procesar cola" button in the operator UI. In S2 the drainer confirms without touching
-   Soroban; from S4 on it submits for real.
-4. Open the record's verification detail and copy the `tx_hash`.
-5. Open `https://stellar.expert/explorer/testnet/tx/<TX_HASH>` and confirm the transaction
-   exists, succeeded, and invoked your contract id.
+   the chain; from S4 on it submits for real.
+4. Open the record's verification detail and copy the **transaction ID**.
+5. Open `https://hashscan.io/testnet/transaction/<TRANSACTION_ID>` and confirm the transaction
+   exists, succeeded, and called your contract.
 6. Read the record straight from the chain, bypassing the application entirely:
 
 ```bash
-stellar contract invoke \
-  --id <CONTRACT_ID> --source traceid-writer --network testnet \
-  -- get_record --animal_id <ANIMAL_ID_HEX> --seq 1    # 32 hex chars = the ULID's 16 bytes
+# via the JSON-RPC relay, which forwards eth_call to the mirror node
+cast call $HEDERA_CONTRACT_EVM_ADDRESS "getRecord(bytes16,uint32)" 0x<ANIMAL_ID_HEX> 1 \
+  --rpc-url https://testnet.hashio.io/api
+
+# or against the mirror node directly — the same path the public history uses
+curl -s -X POST https://testnet.mirrornode.hedera.com/api/v1/contracts/call \
+  -H 'content-type: application/json' \
+  -d "{\"to\":\"$HEDERA_CONTRACT_EVM_ADDRESS\",\"data\":\"$(cast calldata 'getRecord(bytes16,uint32)' 0x<ANIMAL_ID_HEX> 1)\"}"
 ```
+
+`<ANIMAL_ID_HEX>` is 32 hex characters: the ULID's 16 bytes.
 
 7. Open the public history `/a/<animal_id>` in a **logged-out** browser and confirm it shows
    ✅ *Verificado*.
@@ -201,12 +202,14 @@ contract, readable without the application.
 
 ### 10 — Recovering the demo after a Testnet reset
 
-A Testnet reset destroys the contract and all its state. Recovery:
+Hedera Testnet resets roughly once a quarter, announced in advance on
+[status.hedera.com](https://status.hedera.com). A reset destroys the account, the contract and all
+its state. Recovery:
 
 ```bash
-curl "https://friendbot.stellar.org/?addr=<YOUR_G_PUBLIC_KEY>"   # re-fund
-# rebuild, redeploy, re-init (section 7) — note the NEW contract id
-# update STELLAR_CONTRACT_ID in .env.local
+# create a new Testnet account in the portal (section 5); update HEDERA_OPERATOR_* in .env.local
+# redeploy the contract (section 7) — note the NEW contract ID and EVM address
+# update HEDERA_CONTRACT_ID and HEDERA_CONTRACT_EVM_ADDRESS in .env.local
 npm run db:reset                # drop and re-migrate            (to be verified)
 npm run db:seed                 # operational fixtures
 npm run seed:chain              # writes the demo animals and records to the new contract
@@ -216,8 +219,9 @@ npm run seed:chain              # writes the demo animals and records to the new
 fixtures to **both** PostgreSQL and the chain, so the demo is reproducible after any reset.
 
 **What does not come back:** anything a user typed live during a demo. Only seeded fixtures are
-recoverable. The UI banner states this; the documentation states it; it should be said out loud
-before any live demo.
+recoverable. The old mirror data stays queryable for about two weeks after a reset, but the app
+does not read it. The UI banner states this; the documentation states it; it should be said out
+loud before any live demo.
 
 ### Environment variables
 
@@ -228,16 +232,17 @@ Every variable, with everything the brief requires stated for each.
 | `DATABASE_URL` | PostgreSQL connection for app, migrations, seeds | Yes | **Secret** (contains a password) | Matches `docker-compose.yml` (host port 54320) | `.env.local` |
 | `AUTH_SECRET` | Signs/encrypts session cookies | Yes | **Secret** | `openssl rand -base64 32` | `.env.local` |
 | `AUTH_URL` | Canonical app URL; Better Auth checks request origins against it | Only if not `http://localhost:3000` (also when running dev on another port) | Public | Your own host | `.env.local` |
-| `STELLAR_NETWORK` | Which network (`testnet`) | Yes | Public | Fixed value | `.env.local` |
-| `STELLAR_RPC_URL` | Soroban RPC endpoint | Yes | Public | Stellar docs | `.env.local` |
-| `STELLAR_NETWORK_PASSPHRASE` | Must match the network exactly | Yes | Public | Stellar docs | `.env.local` |
-| `STELLAR_CONTRACT_ID` | The deployed contract (`C…`) | Yes | Public | Printed by `stellar contract deploy` | `.env.local` |
-| `STELLAR_PUBLIC_KEY` | Custodial writer address (`G…`) | Yes | Public | `stellar keys address` | `.env.local` |
-| `STELLAR_SECRET_KEY` | Signs every chain write | Yes | **SECRET — server only** | `stellar keys show` | `.env.local` |
+| `HEDERA_NETWORK` | Which network (`testnet`) | Yes (from S4) | Public | Fixed value | `.env.local` |
+| `HEDERA_MIRROR_URL` | Mirror node REST base URL; every chain read goes here | Yes (from S4) | Public | Hedera docs | `.env.local` |
+| `HEDERA_CONTRACT_ID` | The deployed contract, `0.0.…` | Yes (from S4) | Public | HashScan, after `forge create` | `.env.local` |
+| `HEDERA_CONTRACT_EVM_ADDRESS` | The same contract's `0x…` address, used for mirror `contracts/call` | Yes (from S4) | Public | Printed by `forge create` | `.env.local` |
+| `HEDERA_OPERATOR_ID` | Custodial writer account, `0.0.…` | Yes (from S4) | Public | Developer Portal | `.env.local` |
+| `HEDERA_OPERATOR_EVM_ADDRESS` | The writer's `0x…` address, as registered in the contract | Yes (from S4) | Public | Developer Portal | `.env.local` |
+| `HEDERA_OPERATOR_KEY` | ECDSA private key; signs every chain write | Yes (from S4) | **SECRET — server only** | Developer Portal | `.env.local` |
 | `NEXT_PUBLIC_EXPLORER_BASE_URL` | Builds explorer links in the UI | Optional | Public | Fixed value | `.env.local` |
 | `NEXT_PUBLIC_ENVIRONMENT_LABEL` | Text for the "Testnet, demo" banner | Optional | Public | Your choice | `.env.local` |
 
-**`STELLAR_SECRET_KEY` is the one genuinely dangerous value here.** It must never be prefixed
+**`HEDERA_OPERATOR_KEY` is the one genuinely dangerous value here.** It must never be prefixed
 `NEXT_PUBLIC_`, never imported from a Client Component, and never logged. Signing happens
 exclusively in the outbox drainer, server-side (document 04, D7). Anyone holding it can write
 records that the platform will present as authentic.
@@ -257,24 +262,25 @@ AUTH_SECRET="replace-me-with-a-generated-value"
 # Optional unless deploying somewhere other than localhost:3000. Public.
 # AUTH_URL="https://traceid.example.com"
 
-# ── Stellar (Testnet) ───────────────────────────────────────
+# ── Hedera (Testnet) — used from S4 on ─────────────────────
 # All public, documented values — not credentials.
-STELLAR_NETWORK="testnet"
-STELLAR_RPC_URL="https://soroban-testnet.stellar.org"
-STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
+HEDERA_NETWORK="testnet"
+HEDERA_MIRROR_URL="https://testnet.mirrornode.hedera.com"
 
-# Required. Public. Printed by `stellar contract deploy`.
-STELLAR_CONTRACT_ID="CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+# Required from S4. Public. From `forge create` and HashScan.
+HEDERA_CONTRACT_ID="0.0.0000000"
+HEDERA_CONTRACT_EVM_ADDRESS="0x0000000000000000000000000000000000000000"
 
-# Required. Public. The custodial writer address.
-STELLAR_PUBLIC_KEY="GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+# Required from S4. Public. The custodial writer account (Developer Portal).
+HEDERA_OPERATOR_ID="0.0.0000000"
+HEDERA_OPERATOR_EVM_ADDRESS="0x0000000000000000000000000000000000000000"
 
-# Required. ***SECRET — SERVER ONLY. NEVER COMMIT. NEVER expose to the browser.***
-STELLAR_SECRET_KEY="SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+# Required from S4. ***SECRET — SERVER ONLY. NEVER COMMIT. NEVER expose to the browser.***
+HEDERA_OPERATOR_KEY="0x<hex-encoded-ecdsa-private-key>"
 
 # ── UI (optional, public) ───────────────────────────────────
-NEXT_PUBLIC_EXPLORER_BASE_URL="https://stellar.expert/explorer/testnet"
-NEXT_PUBLIC_ENVIRONMENT_LABEL="Stellar Testnet — entorno de demostración"
+NEXT_PUBLIC_EXPLORER_BASE_URL="https://hashscan.io/testnet"
+NEXT_PUBLIC_ENVIRONMENT_LABEL="Hedera Testnet — entorno de demostración"
 ```
 
 ### Authentication configuration
@@ -302,25 +308,27 @@ nothing else needs configuring beyond `AUTH_SECRET` (and `AUTH_URL` off `localho
 
 ### Official links
 
-- Stellar — [smart contract setup](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup)
-- Stellar — [storage strategies and state archival](https://developers.stellar.org/docs/build/guides/storage/storage-strategies)
-- Stellar — [Testnet and Friendbot](https://developers.stellar.org/docs/learn/fundamentals/networks)
-- [Stellar CLI](https://github.com/stellar/stellar-cli)
-- [`soroban-sdk` docs](https://docs.rs/soroban-sdk/latest/soroban_sdk/)
+- Hedera — [Developer Portal and faucet](https://portal.hedera.com)
+- Hedera — [Testnet and resets](https://docs.hedera.com/networks/testnet)
+- Hedera — [Mirror node REST API](https://docs.hedera.com/reference/rest-api/topics) · [`contracts/call` (HIP-584)](https://hips.hedera.com/hip/hip-584)
+- Hedera — [Smart contract gas and fees](https://docs.hedera.com/evm/development/gas-fees) · [Smart contract rent (not enabled)](https://docs.hedera.com/evm/development/rent)
+- [`@hashgraph/sdk`](https://github.com/hiero-ledger/hiero-sdk-js) · [Foundry](https://getfoundry.sh) · [HashScan](https://hashscan.io/testnet)
 - [Next.js](https://nextjs.org/docs) · [Prisma](https://www.prisma.io/docs) · [Zod](https://zod.dev) · [Better Auth](https://better-auth.com)
 - SENASA — [Res. 530/2025](https://www.boletinoficial.gob.ar/detalleAviso/primera/328620/20250721) · [Res. 1698/2019](https://www.argentina.gob.ar/normativa/nacional/norma-333206/texto) · [Res. 257 anexo](https://servicios.infoleg.gob.ar/infolegInternet/anexos/270000-274999/274630/res257.pdf)
 
 ## Pending
 
-- **Exact tool versions.** Pinned in S3: Rust 1.99.1, `soroban-sdk` 29.0.1, `wasm32v1-none`,
-  contract tests green. Still open: the exact Stellar CLI version used for the first Testnet
-  deploy.
+- **Exact tool versions.** Re-pinned in S3 for the Hedera contract: Foundry, `solc`,
+  `@hashgraph/sdk`. (The Soroban pins — Rust 1.99.1, `soroban-sdk` 29.0.1 — are superseded by
+  ADR-0003.)
 - *Resolved in S2:* the drainer is a manually run script, `npm run outbox:drain`, so section 9
   step 3 **does** need a manual command — or the "Procesar cola" button in the operator UI,
   which is the same invocation.
-- **Script names** (`db:migrate`, `db:seed`, `seed:chain`, `outbox:drain`, `reconcile`,
-  `ttl:extend`) are proposed, not implemented; they are added to `package.json` in the stage that
-  creates each one.
+- **Script names** (`seed:chain`, `reconcile`) are proposed, not implemented; they are added to
+  `package.json` in the stage that creates each one.
 - **Whether `npm run db:reset` should also redeploy the contract**, making post-reset recovery a
   single command. Convenient, but a command that silently deploys a contract is easy to run by
   accident.
+- **Deploy path.** `forge create` through Hashio is proposed because it needs no extra code; the
+  alternative is a small `@hashgraph/sdk` script (`ContractCreateFlow`) that uses the same
+  operator ID and key as the drainer and never touches the relay. Decide in S3.

@@ -20,8 +20,9 @@ milestone" with a bounded description.
 **Every record must carry:** a unique identifier; the animal it belongs to; type and schema
 version; the date and time of the declared fact; the date and time of incorporation into the
 registry; the author or verifiable identifier of whoever loaded it; the milestone's specific
-data; sequence and reference to the previous record; content hash and Stellar operation
-references; and a terminal-record indicator where applicable.
+data; sequence and reference to the previous record; content hash and network operation
+references (Hedera since ADR-0003; the brief says Stellar); and a terminal-record indicator where
+applicable.
 
 **Chain order is the order of incorporation.** A fact loaded late may carry an earlier
 `occurred_at`, but it must never be inserted by rewriting the chain.
@@ -36,7 +37,7 @@ references the original and explains the rectification, preserving both.
 **Web platform must include:** authentication for write operations; an animal list with search
 by identifier and basic filters; fast identification and access to an animal by QR; animal
 creation with its first record; simple loading of new milestones; explicit chain closure with
-confirmation; a public animal history requiring no login; display of hashes and Stellar
+confirmation; a public animal history requiring no login; display of hashes and network
 references; and clear states for pending, confirmed and failed records.
 
 **The interface is in Spanish and usable from a phone.** Prioritize few steps to find an animal
@@ -117,7 +118,7 @@ Every record is in exactly one state, and the state is always visible:
 |---|---|---|
 | `pending` | Accepted by the app, queued in the outbox, not yet submitted | Not shown as verified history |
 | `submitted` | Transaction sent, awaiting confirmation | Not shown as verified history |
-| `confirmed` | On-chain and read back successfully | Shown, with its verification result |
+| `confirmed` | On-chain (consensus receipt) **and** read back successfully from the mirror node | Shown, with its verification result |
 | `failed` | Submission definitively failed | Not shown publicly; visible to operators for retry |
 
 - **R5.1** A record may be on-chain while still showing `pending` locally until reconciliation
@@ -138,12 +139,14 @@ Every record is in exactly one state, and the state is always visible:
 
 ### R7 — Public history
 
-- **R7.1** The public history reads records **from the contract**, live, on every request.
-- **R7.2** If Stellar is unreachable, the UI states that it **could not verify** the history. It
+- **R7.1** The public history reads records **from the contract**, through the Hedera mirror
+  node, live, on every request.
+- **R7.2** If the mirror node is unreachable, the UI states that it **could not verify** the history. It
   must never present cached data as freshly verified.
 - **R7.3** Each milestone displays or allows consulting: the public content recorded, the content
-  hash, the previous record's hash, the transaction hash, the network and contract, a ledger
-  reference and explorer link where available, and the integrity verification result.
+  hash, the previous record's hash, the transaction ID and hash, the network and contract, the
+  consensus timestamp and a HashScan link where available, and the integrity verification
+  result.
 
 ### R8 — Content restrictions
 

@@ -16,7 +16,7 @@
  */
 
 import type { RecordType } from "@/generated/prisma/enums";
-import { MAX_PAYLOAD_BYTES } from "@/lib/stellar/contract-limits";
+import { MAX_PAYLOAD_BYTES } from "@/lib/chain/contract-limits";
 import {
   type Bytes,
   type CanonicalValue,

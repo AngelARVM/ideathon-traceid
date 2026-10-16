@@ -129,7 +129,9 @@ Errors (Solidity custom errors, same names and order as before so the UI message
 `NoWriters`.
 
 Events: `RecordAppended(bytes16 indexed animalId, uint32 indexed seq, bytes32 contentHash,
-Kind kind)` on every write and `ChainClosed(bytes16 indexed animalId, uint32 seq)` on close. A
+Kind kind)` on every write and `ChainTerminated(bytes16 indexed animalId, uint32 seq)` on close (not `ChainClosed`: Solidity
+forbids an event sharing a name with the `ChainClosed` error, and the error name is the one the
+app maps). A
 convenience for indexers and explorers; verification reads storage and never depends on them.
 
 ### The five enforced invariants

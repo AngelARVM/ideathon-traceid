@@ -1,6 +1,6 @@
 import { Layers } from "lucide-react";
 
-/** Aviso permanente: el escritor real de Stellar todavía no está conectado (S2). */
+/** Aviso permanente: el escritor real de Hedera todavía no está conectado (hasta S4). */
 export function EnvironmentBanner() {
   return (
     <aside
@@ -18,7 +18,7 @@ export function EnvironmentBanner() {
         />
         <span>
           <strong>Modo demostración.</strong> Los registros se confirman
-          localmente; la conexión con Stellar está pendiente.
+          localmente; la conexión con Hedera está pendiente.
         </span>
       </p>
     </aside>

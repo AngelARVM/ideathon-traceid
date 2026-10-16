@@ -1,18 +1,18 @@
 /**
- * El escritor stub de S2: confirma sin tocar Soroban (docs/08).
+ * El escritor stub de S2: confirma sin tocar Hedera (docs/08).
  *
  * No es un `return true`. Reimplementa las cinco invariantes estructurales del contrato
  * contra una cadena derivada de las filas ya confirmadas en PostgreSQL, y rechaza con los
- * mismos códigos de error que el Rust. Eso es lo que hace que valga la pena: el ciclo de vida
+ * mismos códigos de error que el contrato Solidity. Eso es lo que hace que valga la pena: el ciclo de vida
  * `pending → submitted → confirmed → failed`, la lógica de encadenado y la idempotencia quedan
- * ejercitados antes de que exista una sola llamada a Stellar, y en S4 el único cambio es de
+ * ejercitados antes de que exista una sola llamada a Hedera, y en S4 el único cambio es de
  * quién verifica.
  */
 
 import { createHash, randomBytes } from "node:crypto";
 import type { PrismaClient } from "@/generated/prisma/client";
+import { MAX_PAYLOAD_BYTES } from "@/lib/chain/contract-limits";
 import { type Bytes, bytesToHex } from "@/lib/records/canonical";
-import { MAX_PAYLOAD_BYTES } from "@/lib/stellar/contract-limits";
 import {
   ChainError,
   type ChainHeader,

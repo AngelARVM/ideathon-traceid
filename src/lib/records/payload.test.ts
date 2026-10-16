@@ -172,7 +172,7 @@ describe("recorded_at dentro del hash", () => {
   });
 });
 
-describe("tope de 8192 bytes del contrato", () => {
+describe("tope de 4096 bytes del contrato", () => {
   it("un record realista queda muy por debajo", () => {
     const built = buildPayload({
       ...base,

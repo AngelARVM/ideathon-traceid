@@ -1,5 +1,5 @@
 // Las invariantes que el contrato de S3 hace cumplir, ejercitadas sobre el stub de S2: si el
-// drainer no las respeta acá, tampoco las va a respetar cuando el que rechace sea Soroban.
+// drainer no las respeta acá, tampoco las va a respetar cuando el que rechace sea el contrato.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { describe, it } from "node:test";

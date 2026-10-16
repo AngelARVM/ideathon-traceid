@@ -1,6 +1,6 @@
 /**
- * Codec ULID ↔ `BytesN<16>` (docs/06): el valor de 128 bits del ULID en big-endian, es decir
- * los 26 caracteres de Crockford base32 decodificados a 16 bytes. En la CLI son 32 caracteres
+ * Codec ULID ↔ `bytes16` (docs/06): el valor de 128 bits del ULID en big-endian, es decir
+ * los 26 caracteres de Crockford base32 decodificados a 16 bytes. En hex son 32 caracteres
  * hex en minúscula. `animal_id` y `author` usan la misma codificación.
  *
  * Vive del lado de la app porque el contrato solo ve bytes. S4 lo necesita para firmar; S2 lo
@@ -90,7 +90,7 @@ export function bytesToUlid(bytes: Uint8Array): string {
   return out;
 }
 
-/** Como la CLI de Stellar espera el argumento: 32 caracteres hex en minúscula. */
+/** 32 caracteres hex en minúscula, sin prefijo; `cast` los toma como `0x<hex>`. */
 export function ulidToHex(ulid: string): string {
   return Buffer.from(ulidToBytes(ulid)).toString("hex");
 }

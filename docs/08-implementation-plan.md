@@ -8,7 +8,8 @@ become MVP dependencies.
 
 **Status (2026-10-16):** S1 and S2 implemented. S3 built a Soroban contract, then the network
 changed to **Hedera** (ADR-0003) before that contract was deployed, so **S3 is reopened**: the
-contract is rewritten in Solidity with the same invariants, and its Testnet deploy and
+contract is rewritten in Solidity with the same invariants (`contracts/traceid/`, Foundry, all
+Soroban tests ported and passing; the S2 follow-ups done), and its Testnet deploy and
 measurements are still outstanding (documents 06 and 07 carry the measurement Pendings). The earlier UI prototype lives in `prototype/` as visual reference only —
 it runs on mock data and is excluded from the build.
 

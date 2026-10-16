@@ -1,49 +1,40 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-campo-50: #f2f7f3;
+    --color-campo-100: #e3ede4;
+    --color-campo-200: #c6dcce;
+    --color-campo-300: #9cc1a7;
+    --color-campo-500: #4a8d57;
+    --color-campo-600: #2f6b3a;
+    --color-campo-700: #26562f;
+    --color-campo-800: #204527;
+    --color-campo-900: #1a3921;
+    --color-campo-950: #0d1e11;
+
+    --color-tierra-500: #b45309;
+    --color-tierra-600: #92400e;
+    --color-tierra-700: #78350f;
   }
 }
 
-html {
-  height: 100%;
+/* Custom utility for safe bottom area for thumb-first mobile layout */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* Monospace styling */
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-feature-settings:
+    "tnum" 1,
+    "zero" 1;
 }

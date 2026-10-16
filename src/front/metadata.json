@@ -1,6 +1,0 @@
-{
-  "name": "TraceID - Trazabilidad Bovina NEA",
-  "description": "Sistema de trazabilidad individual de ganado bovino anclado en Stellar Blockchain para productores del nordeste argentino.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

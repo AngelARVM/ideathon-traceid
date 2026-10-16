@@ -31,7 +31,7 @@ of history.**
 
 | Tool | Version | Why | Where |
 |---|---|---|---|
-| Node.js | ≥ 20 LTS | Next.js 16 runtime | [nodejs.org](https://nodejs.org) |
+| Node.js | ≥ 20.12 LTS | Next.js 16 runtime; `process.loadEnvFile` in `prisma.config.ts` | [nodejs.org](https://nodejs.org) |
 | npm | bundled with Node | The repo has `package-lock.json`, so npm is the package manager | — |
 | Docker + Docker Compose | current stable | Runs PostgreSQL locally | [docs.docker.com](https://docs.docker.com/get-docker/) |
 | Rust toolchain | current stable | Compiles the Soroban contract | [rustup.rs](https://rustup.rs) |
@@ -49,8 +49,10 @@ npm install
 
 ### 2 — Start PostgreSQL
 
-A `docker-compose.yml` at the repository root *(created in S1)* defines a single `postgres`
-service with a named volume and the database `traceid`.
+`docker-compose.yml` at the repository root defines a single `postgres` service (`postgres:17-alpine`)
+with a named volume and the database `traceid`. It publishes on host port **54320**, not 5432,
+so it does not collide with a PostgreSQL already running on the machine. Override with
+`TRACEID_DB_PORT=… docker compose up -d` and adjust `DATABASE_URL` to match.
 
 ```bash
 docker compose up -d
@@ -71,12 +73,18 @@ never be committed.
 ### 4 — Migrate and seed
 
 ```bash
-npm run db:migrate         # applies SQL migrations        (to be verified, S1)
-npm run db:seed            # orgs, users, memberships, establishments, lots (S1)
+npm run db:migrate         # prisma migrate deploy: applies prisma/migrations/
+npm run db:seed            # orgs, users, memberships, establishments, lots
 ```
 
 The seed prints the demo logins. They are intentionally trivial and are **not** secrets — see
-the authentication section.
+the authentication section. It is a no-op if users already exist; `npm run db:seed -- --reset`
+wipes the S1 tables and seeds again.
+
+`npm install` runs `prisma generate` (postinstall); the client is written to `src/generated/prisma/`,
+which is git-ignored. When the schema changes: edit `prisma/schema.prisma`, run
+`npm run db:migrate:dev -- --name <change>` (creates and applies the migration and regenerates the
+client), and commit the new folder in `prisma/migrations/`.
 
 ### 5 — Create a Stellar Testnet account
 
@@ -149,7 +157,7 @@ a contract bug means repeating this whole section with a fresh contract id and r
 ### 8 — Start the application
 
 ```bash
-npm run dev                # http://localhost:3000
+npm run dev                # http://localhost:3000 (or: npm run dev -- --port 3100)
 ```
 
 For a manual production-style run:
@@ -213,9 +221,9 @@ Every variable, with everything the brief requires stated for each.
 
 | Variable | Purpose | Required | Secret | How to obtain | Where |
 |---|---|---|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection for app, migrations, seeds | Yes | **Secret** (contains a password) | Matches `docker-compose.yml` | `.env.local` |
+| `DATABASE_URL` | PostgreSQL connection for app, migrations, seeds | Yes | **Secret** (contains a password) | Matches `docker-compose.yml` (host port 54320) | `.env.local` |
 | `AUTH_SECRET` | Signs/encrypts session cookies | Yes | **Secret** | `openssl rand -base64 32` | `.env.local` |
-| `AUTH_URL` | Canonical app URL for auth callbacks | Only if not `localhost:3000` | Public | Your own host | `.env.local` |
+| `AUTH_URL` | Canonical app URL; Better Auth checks request origins against it | Only if not `http://localhost:3000` (also when running dev on another port) | Public | Your own host | `.env.local` |
 | `STELLAR_NETWORK` | Which network (`testnet`) | Yes | Public | Fixed value | `.env.local` |
 | `STELLAR_RPC_URL` | Soroban RPC endpoint | Yes | Public | Stellar docs | `.env.local` |
 | `STELLAR_NETWORK_PASSPHRASE` | Must match the network exactly | Yes | Public | Stellar docs | `.env.local` |
@@ -237,7 +245,7 @@ To be committed at the repository root in S1, with no real secrets:
 ```dotenv
 # ── Database ────────────────────────────────────────────────
 # Required. Secret (contains a password). Must match docker-compose.yml.
-DATABASE_URL="postgresql://traceid:traceid@localhost:5432/traceid"
+DATABASE_URL="postgresql://traceid:traceid@localhost:54320/traceid"
 
 # ── Authentication ──────────────────────────────────────────
 # Required. Secret. Generate with: openssl rand -base64 32
@@ -280,9 +288,13 @@ accidentally reach a shared environment.
 | `owner@demo.local` | `owner` | `demo1234` |
 | `vet@demo.local` | `professional` | `demo1234` |
 | `operator@demo.local` | `operator` | `demo1234` |
+| `other-org@demo.local` | `owner` of a **second** organization | `demo1234` |
 
-*(Exact library and version — Auth.js v5 vs. Better Auth — is an open decision; see document 04,
-Pending. The functional requirement above is identical either way.)*
+The fourth user exists for the cross-organization authorization case (document 09, case 2).
+
+Library: **Better Auth `1.7.x`**, email + password with sign-up disabled, argon2id hashes,
+database-backed sessions (ADR-0001). The route handler is `src/app/api/auth/[...all]/route.ts`;
+nothing else needs configuring beyond `AUTH_SECRET` (and `AUTH_URL` off `localhost:3000`).
 
 ### Official links
 
@@ -291,14 +303,13 @@ Pending. The functional requirement above is identical either way.)*
 - Stellar — [Testnet and Friendbot](https://developers.stellar.org/docs/learn/fundamentals/networks)
 - [Stellar CLI](https://github.com/stellar/stellar-cli)
 - [`soroban-sdk` docs](https://docs.rs/soroban-sdk/latest/soroban_sdk/)
-- [Next.js](https://nextjs.org/docs) · [Drizzle ORM](https://orm.drizzle.team/docs/overview) · [Zod](https://zod.dev) · [Auth.js](https://authjs.dev) · [Better Auth](https://better-auth.com)
+- [Next.js](https://nextjs.org/docs) · [Prisma](https://www.prisma.io/docs) · [Zod](https://zod.dev) · [Better Auth](https://better-auth.com)
 - SENASA — [Res. 530/2025](https://www.boletinoficial.gob.ar/detalleAviso/primera/328620/20250721) · [Res. 1698/2019](https://www.argentina.gob.ar/normativa/nacional/norma-333206/texto) · [Res. 257 anexo](https://servicios.infoleg.gob.ar/infolegInternet/anexos/270000-274999/274630/res257.pdf)
 
 ## Pending
 
 - **Exact tool versions** for the Rust toolchain, `soroban-sdk`, Stellar CLI and the wasm target.
   These move together and must be pinned by actually building in S3, not copied from a guide.
-- **Auth library and version** (document 04, Pending).
 - **Whether the drainer runs as a script, a dev-mode loop or a worker** — determines whether
   section 9 step 3 needs a manual command at all.
 - **Script names** (`db:migrate`, `db:seed`, `seed:chain`, `outbox:drain`, `reconcile`,

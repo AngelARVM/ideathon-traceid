@@ -220,10 +220,10 @@ guarantee.
 
 | Need | Proposed | Note |
 |---|---|---|
-| ORM + migrations | Drizzle ORM + drizzle-kit | SQL-first, light, good TypeScript inference |
+| ORM + migrations | Prisma `7.10.x` + `@prisma/adapter-pg` | Decided in S1, see ADR-0002. `partialIndexes` preview feature for the partial unique indexes |
 | PostgreSQL driver | `pg` | — |
 | Validation | Zod | Per-type record schemas |
-| Auth | Auth.js v5 (`next-auth@beta`) | Works with Next.js 16; middleware is now `proxy.ts`. **See Pending** |
+| Auth | Better Auth `1.7.x` + Prisma adapter | Decided in S1, see ADR-0001. Middleware is now `proxy.ts` |
 | Password hashing | argon2 | — |
 | Ids | ULID | Sortable, opaque, short enough for the 250-byte key limit |
 | Stellar | `@stellar/stellar-sdk` | RPC + transaction building |
@@ -234,15 +234,7 @@ No paid service, no API key that the provider does not actually require.
 
 ## Pending
 
-- **Auth library choice needs a decision before S1.** Auth.js v5 works with Next.js 16, but
-  maintenance of Auth.js/NextAuth passed to the Better Auth team in September 2025, and Auth.js's
-  own documentation now directs new projects to **Better Auth**. The session settled on "Auth.js
-  credentials with seeded users"; whether that should become Better Auth instead is a live
-  question, not something to resolve silently during implementation. The functional requirement
-  (seeded per-user accounts, argon2, server-side session, `requireMembership`) is identical either
-  way.
-- **Exact Auth.js / Better Auth version pinning** against Next.js `16.4.2`, to be verified at
-  install time rather than assumed from documentation.
+- ~~Auth library choice and version~~ — resolved in S1: Better Auth, see `docs/adr/0001-better-auth.md`.
 - **Drainer execution model.** A manually run script, a dev-mode interval loop, or a long-running
   worker. "Manual deployment" argues for a script plus a dev loop; nothing is decided, and the
   demo's smoothness depends on it.

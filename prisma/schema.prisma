@@ -28,6 +28,8 @@ model User {
   sessions    Session[]
   accounts    Account[]
   memberships Membership[]
+  records     Record[]
+  lotMoves    AnimalLotHistory[]
 
   @@map("users")
 }
@@ -92,6 +94,8 @@ model Organization {
   memberships    Membership[]
   establishments Establishment[]
   lots           Lot[]
+  animals        Animal[]
+  records        Record[]
 
   @@map("organizations")
 }
@@ -151,10 +155,210 @@ model Lot {
   active          Boolean  @default(true)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  organization  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  organization  Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  establishment Establishment      @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  animals       Animal[]
+  lotHistory    AnimalLotHistory[]
 
   @@unique([establishmentId, name], map: "lots_establishment_name_active_uq", where: { active: true })
   @@index([orgId])
   @@map("lots")
+}
+
+// ── Dominio S2 ─────────────────────────────────────────────────────────────
+// Nada de acá llega a la cadena por sí mismo: lo único que se publica es
+// `records.canonical_payload`, construido explícitamente en src/lib/records.
+
+enum AnimalSpecies {
+  bovine
+
+  @@map("animal_species")
+}
+
+// Espejo del `closed` del contrato (docs/05). Solo para listados y reconciliación.
+enum ChainStatus {
+  open
+  closed
+
+  @@map("chain_status")
+}
+
+enum IdentifierKind {
+  senasa_cii
+  senasa_printed
+  internal_tag
+  unknown_format
+
+  @@map("identifier_kind")
+}
+
+enum RecordType {
+  registration
+  weighing
+  vaccination
+  deworming
+  feeding
+  movement
+  sale
+  slaughterhouse_delivery
+  death
+  other
+  rectification
+
+  @@map("record_type")
+}
+
+// Ciclo de vida de envío, compartido por `records` y `outbox` (docs/08, S2).
+enum SubmissionStatus {
+  pending
+  submitted
+  confirmed
+  failed
+
+  @@map("submission_status")
+}
+
+model Animal {
+  id           String        @id @default(ulid())
+  orgId        String        @map("org_id")
+  // Fijo a `bovine` en el MVP, modelado para expansión (docs/05).
+  species      AnimalSpecies @default(bovine)
+  birthDate    DateTime?     @map("birth_date") @db.Date
+  // Conveniencia desnormalizada; la historia real está en `animal_lot_history`.
+  currentLotId String?       @map("current_lot_id")
+
+  // Las tres columnas espejo del contrato. El historial público NUNCA las lee.
+  chainStatus     ChainStatus @default(open) @map("chain_status")
+  recordCount     Int         @default(0) @map("record_count")
+  lastContentHash Bytes?      @map("last_content_hash")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  currentLot   Lot?               @relation(fields: [currentLotId], references: [id], onDelete: SetNull)
+  identifiers  AnimalIdentifier[]
+  lotHistory   AnimalLotHistory[]
+  records      Record[]
+
+  @@index([orgId])
+  @@index([currentLotId])
+  @@map("animals")
+}
+
+/// Historial append-only de identificadores: permite reemplazar una caravana sin crear
+/// otro animal ni cortar la cadena (docs/02, R3.2).
+model AnimalIdentifier {
+  id                String         @id @default(ulid())
+  animalId          String         @map("animal_id")
+  // Desnormalizado desde `animals.org_id`: un índice único parcial no puede atravesar
+  // una relación, y la unicidad del identificador activo es por organización (docs/04, D11).
+  orgId             String         @map("org_id")
+  // `text` siempre: conserva ceros a la izquierda, nunca numérico (R3.3).
+  identifier        String
+  identifierKind    IdentifierKind
+  // Lo que reconoció el validador laxo (R3.4); null si no se pudo clasificar.
+  detectedFormat    String?        @map("detected_format")
+  assignedAt        DateTime       @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  // null = activo.
+  replacedAt        DateTime?      @map("replaced_at") @db.Timestamptz(6)
+  replacementReason String?        @map("replacement_reason")
+
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  // Un solo identificador activo por animal.
+  @@unique([animalId], map: "animal_identifiers_one_active_per_animal_uq", where: { replacedAt: null })
+  // Un solo valor de identificador activo por organización: lo que evita cadenas duplicadas.
+  @@unique([orgId, identifier], map: "animal_identifiers_active_value_per_org_uq", where: { replacedAt: null })
+  // La búsqueda recorre TODAS las filas, incluidas las reemplazadas (R3.5).
+  @@index([orgId, identifier])
+  @@index([animalId])
+  @@map("animal_identifiers")
+}
+
+/// Append-only: un cambio de lote nunca muta identidad ni historia (docs/05).
+model AnimalLotHistory {
+  id       String   @id @default(ulid())
+  animalId String   @map("animal_id")
+  lotId    String   @map("lot_id")
+  movedAt  DateTime @default(now()) @map("moved_at") @db.Timestamptz(6)
+  movedBy  String   @map("moved_by")
+
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  lot    Lot    @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  mover  User   @relation(fields: [movedBy], references: [id], onDelete: Restrict)
+
+  @@index([animalId, movedAt])
+  @@index([lotId])
+  @@map("animal_lot_history")
+}
+
+/// Modelo de lectura y estado de envío. `canonical_payload` se guarda textual para que
+/// la verificación sea reproducible byte a byte.
+model Record {
+  // ULID generado en el cliente: es la clave de idempotencia (docs/04, D4).
+  recordId      String     @id @map("record_id")
+  animalId      String     @map("animal_id")
+  orgId         String     @map("org_id")
+  authorId      String     @map("author_id")
+  type          RecordType
+  schemaVersion Int        @default(1) @map("schema_version")
+  // Cuándo pasó el hecho.
+  occurredAt    DateTime   @map("occurred_at") @db.Timestamptz(6)
+  // Fijado por el servidor una sola vez antes de enviar; NUNCA se re-estampa en un reintento,
+  // porque está dentro del hash (docs/05).
+  recordedAt    DateTime   @map("recorded_at") @db.Timestamptz(6)
+  terminal      Boolean    @default(false)
+
+  rectifiesRecordId String? @map("rectifies_record_id")
+
+  // Objeto específico del tipo, ya validado por su esquema Zod.
+  data             Json
+  // Los bytes exactos que se hashearon.
+  canonicalPayload String @map("canonical_payload")
+  contentHash      Bytes  @map("content_hash")
+
+  // Nulos hasta que el contrato asigna la secuencia.
+  seq      Int?
+  prevHash Bytes? @map("prev_hash")
+
+  status SubmissionStatus @default(pending)
+
+  // Metadata de transacción: nunca se hashea.
+  txHash String? @map("tx_hash")
+  ledger BigInt?
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  animal       Animal       @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  rectifies    Record?      @relation("Rectification", fields: [rectifiesRecordId], references: [recordId], onDelete: Restrict)
+  rectifiedBy  Record[]     @relation("Rectification")
+  outbox       Outbox?
+
+  // La autoridad sobre `seq` es el contrato; esto solo evita duplicados locales.
+  @@unique([animalId, seq], map: "records_animal_seq_uq", where: { seq: { not: null } })
+  @@index([animalId, createdAt])
+  @@index([status])
+  @@map("records")
+}
+
+/// Escrito en la misma transacción que su `records` (docs/04, D3). En S2 lo drena un
+/// drainer stub sin cadena; en S4 lo reemplaza el submitter real.
+model Outbox {
+  id            String           @id @default(ulid())
+  // Clave de deduplicación: un reinicio del drainer no puede re-enviar.
+  recordId      String           @unique @map("record_id")
+  status        SubmissionStatus @default(pending)
+  attempts      Int              @default(0)
+  lastError     String?          @map("last_error")
+  nextAttemptAt DateTime         @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  submittedAt   DateTime?        @map("submitted_at") @db.Timestamptz(6)
+  settledAt     DateTime?        @map("settled_at") @db.Timestamptz(6)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  record Record @relation(fields: [recordId], references: [recordId], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@map("outbox")
 }

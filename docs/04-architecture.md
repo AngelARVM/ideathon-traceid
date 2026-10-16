@@ -235,9 +235,12 @@ No paid service, no API key that the provider does not actually require.
 ## Pending
 
 - ~~Auth library choice and version~~ — resolved in S1: Better Auth, see `docs/adr/0001-better-auth.md`.
-- **Drainer execution model.** A manually run script, a dev-mode interval loop, or a long-running
-  worker. "Manual deployment" argues for a script plus a dev loop; nothing is decided, and the
-  demo's smoothness depends on it.
+- **Drainer execution model.** *Resolved in S2:* a **manually run script**, `npm run
+  outbox:drain`, with the drain logic in `lib/outbox/drain.ts` and its invocation in
+  `scripts/drain.ts` so S4 replaces the `ChainWriter` and not the lifecycle. The operator UI
+  also exposes a "Procesar cola" button, which is the same manual invocation without leaving the
+  app — it is what makes the `pending → confirmed` transition demoable. No interval loop and no
+  worker: a single writer is what keeps `prev_hash` linked without extra coordination.
 - **Retry bounds and backoff** for `prev_hash` contention and RPC errors (attempt count, delay,
   and what makes a failure terminal).
 - **Measured per-record rent cost on Testnet** — only S3 can produce a real number.

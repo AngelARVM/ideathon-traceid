@@ -6,8 +6,14 @@ Documentation must be divided into **small stages**, coherent and actionable, wi
 unnecessarily expanding MVP scope. Deployment is manual. The listed out-of-scope items must not
 become MVP dependencies.
 
-**Status (2026-10-16):** S1 implemented. The earlier UI prototype lives in `prototype/` as visual
-reference only — it runs on mock data and is excluded from the build.
+**Status (2026-10-16):** S1, S2 and S3's contract implemented. S3's Testnet deploy and
+measurements are still outstanding, which is why documents 06 and 07 still carry their
+measurement Pendings. The earlier UI prototype lives in `prototype/` as visual reference only —
+it runs on mock data and is excluded from the build.
+
+S2 shipped one thing earlier than planned: the TypeScript ULID ↔ `BytesN<16>` codec, which
+document 06 assigned to S4. It is pure and cheap to test, and bringing it forward means the real
+submitter has nothing left to invent.
 
 ## Proposed
 
@@ -224,8 +230,14 @@ document 10 rather than implementing it.
   deadline is unknown to this document.
 - **Whether S5's public route may read PostgreSQL for display labels at all** (document 03,
   Pending) — affects S5's module boundary.
-- **Test-infrastructure choice.** "Rust unit tests for the contract, integration tests against a
-  test database for the app" is settled in principle; the JS test runner is not chosen.
+- **Integration tests against a test database.** The JS test runner is settled: **`node:test`
+  run through `tsx`** (`npm test`), chosen because it adds no dependency and the suites that
+  matter — canonical serialization, the ULID codec, the identifier validator and the contract
+  invariants on the stub writer — are all pure. What is still missing is the test *database*:
+  the write path and the drainer were verified end to end by hand against a real PostgreSQL,
+  not by an automated suite. The obstacle is that authorization lives inside the write path, so
+  a test needs a real session; the honest options are a seam for the actor or a session fixture,
+  and neither is decided.
 - **A stop line.** If S3's measurements show per-record cost or latency to be unacceptable, there
   is no agreed fallback. The honest options would be reducing payload size or revisiting the
   full-payload-on-chain decision (Q1) — both of which would reopen document 04.

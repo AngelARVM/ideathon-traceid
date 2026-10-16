@@ -129,6 +129,7 @@ The application never needs the JSON-RPC relay: writes go to consensus nodes thr
 From `contracts/traceid/` (the Foundry project that replaces the Soroban crate, ADR-0003):
 
 ```bash
+git submodule update --init lib/forge-std     # test library, once per clone
 forge test                                     # one or more tests per invariant (document 09, A3)
 forge build
 forge create src/TraceId.sol:TraceId \

@@ -7,7 +7,7 @@ import {
   UlidCodecError,
   ulidToBytes,
   ulidToHex,
-} from "@/lib/stellar/ulid-bytes";
+} from "@/lib/chain/ulid-bytes";
 
 describe("codec ULID ↔ BytesN<16>", () => {
   it("round-trip sobre ULIDs reales generados por la libreria", () => {

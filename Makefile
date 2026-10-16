@@ -42,6 +42,10 @@ check: ## Tests, tipos y linter
 	@npm run typecheck
 	@npm run lint
 
+.PHONY: contract
+contract: ## Compila y testea el contrato (requiere Foundry)
+	@cd contracts/traceid && forge test
+
 .PHONY: help
 help:
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \

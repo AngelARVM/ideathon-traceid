@@ -1,94 +1,106 @@
-# traceid — Soroban contract (stage S3) — **superseded**
+# traceid — Hedera contract (stage S3)
 
-> **Superseded by [ADR-0003](../../docs/adr/0003-hedera-instead-of-stellar.md).** The network is now
-> Hedera; S3 replaces this crate with a Foundry project implementing the same invariants
-> ([`docs/06-hedera-contract.md`](../../docs/06-hedera-contract.md)). Kept until then as the
-> reference for porting the tests one-for-one.
-
-Append-only, hash-linked record chains, one per animal. Design and rationale are in
-the Stellar version of document 06 in git history. Setup and toolchain are in
-[`docs/07-setup-and-deployment.md`](../../docs/07-setup-and-deployment.md).
+Append-only, hash-linked record chains, one per animal, on the Hedera Smart Contract Service.
+Design and rationale: [`docs/06-hedera-contract.md`](../../docs/06-hedera-contract.md) and
+[ADR-0003](../../docs/adr/0003-hedera-instead-of-stellar.md). Setup and toolchain:
+[`docs/07-setup-and-deployment.md`](../../docs/07-setup-and-deployment.md). The Soroban crate this
+replaces is in git history.
 
 ```
-src/lib.rs    contract: storage layout, entry points, invariants, TTL
-src/test.rs   unit tests — one or more per invariant, each asserting the rejection
+src/TraceId.sol      contract: storage layout, entry points, invariants
+test/TraceId.t.sol   Foundry tests — one or more per invariant, each asserting its custom error
+lib/forge-std        test library (git submodule)
 ```
 
 ## Test
 
 ```bash
-cargo test
+git submodule update --init lib/forge-std   # once per clone
+forge test                                  # or, from the repo root: make contract
+forge test --gas-report
 ```
 
 | Invariant | Tests |
 |---|---|
-| 1 Sequence authority | `contract_assigns_seq`, `get_records_paginates_and_caps` |
-| 2 Hash linkage | `wrong_prev_hash_refused`, `content_hash_must_match_payload` |
-| 3 No overwrite | `create_chain_on_existing_header_refused`, `existing_record_slot_is_never_overwritten` |
-| 4 Authorization | `non_writer_refused`, `writer_signature_is_required`, `constructor_requires_writers` |
-| 5 Closed-chain policy | `ordinary_milestone_on_closed_chain_refused`, `closing_twice_refused`, `terminal_kind_via_append_refused`, `rectification_allowed_on_closed_chain_and_never_reopens`, `rectification_on_open_chain_keeps_it_open` |
-| TTL | `writes_bump_ttl_to_max`, `extend_ttl_restores_max_after_time_passes` |
+| 1 Sequence authority | `test_contractAssignsSeq`, `test_getRecordsPaginatesAndCaps` |
+| 2 Hash linkage | `test_wrongPrevHashRefused`, `test_contentHashMustMatchPayload` |
+| 3 No overwrite | `test_createChainOnExistingHeaderRefused`, `test_existingRecordSlotIsNeverOverwritten` |
+| 4 Authorization | `test_nonWriterRefused`, `test_writerSignatureIsRequired`, `test_constructorRequiresWriters` |
+| 5 Closed-chain policy | `test_ordinaryMilestoneOnClosedChainRefused`, `test_closingTwiceRefused`, `test_terminalKindViaAppendRefused`, `test_rectificationAllowedOnClosedChainAndNeverReopens`, `test_rectificationOnOpenChainKeepsItOpen` |
 
-## Build and deploy (Testnet)
+The Soroban TTL tests have no counterpart: Hedera contract storage does not expire.
 
-Requires Stellar CLI ≥ 25.2.0.
+## Deploy (Testnet)
+
+Needs the ECDSA operator account from document 07, section 5. The constructor argument is the
+writer set — **fixed forever**.
 
 ```bash
-stellar keys generate traceid-writer --network testnet --fund
-W=$(stellar keys address traceid-writer)
-
-stellar contract build
-C=$(stellar contract deploy \
-  --wasm target/wasm32v1-none/release/traceid.wasm \
-  --source-account traceid-writer --network testnet \
-  -- --admin $W --writers "[\"$W\"]")
-echo $C
+export RPC=https://testnet.hashio.io/api
+forge create src/TraceId.sol:TraceId --rpc-url $RPC --private-key $HEDERA_OPERATOR_KEY \
+  --broadcast --constructor-args "[$WRITER]"
 ```
+
+`$WRITER` must be the address the contract sees as `msg.sender` for the operator account (document
+06, Pending): after deploying, check that `cast call $C "writers()(address[])" --rpc-url $RPC` and a
+first `createChain` agree. On HashScan, confirm the contract shows **no admin key**.
 
 ## Exit-criteria walkthrough, from a terminal only
 
-`Bytes` and `BytesN` arguments are hex. `kind` is an integer: `0` Ordinary, `1` Terminal, `2` Rectification. `animal_id` and `author` are 16 bytes (32 hex chars).
-`content_hash` must be `sha256(payload)`, or the contract refuses the record.
+`animalId` and `author` are `bytes16` (`0x` + 32 hex). `kind` is `0` Ordinary, `1` Terminal,
+`2` Rectification. `contentHash` must be `sha256(payload)`, or the contract refuses the record.
 
 ```bash
-inv() { stellar contract invoke --id $C --source-account traceid-writer --network testnet -- "$@"; }
-hex()  { printf '%s' "$1" | xxd -p | tr -d '\n'; }
-sha()  { printf '%s' "$1" | sha256sum | cut -d' ' -f1; }
+C=0x<CONTRACT_EVM_ADDRESS>
+send() { cast send $C "$@" --rpc-url $RPC --private-key $HEDERA_OPERATOR_KEY; }
+call() { cast call $C "$@" --rpc-url $RPC; }
+hex()  { printf '0x%s' "$(printf '%s' "$1" | xxd -p | tr -d '\n')"; }
+sha()  { printf '0x%s' "$(printf '%s' "$1" | shasum -a 256 | cut -d' ' -f1)"; }
 
-A=01890a5d000000000000000000000001   # animal_id
-U=0000000000000000000000000000000a   # author
+A=0x01890a5d000000000000000000000001   # animalId
+U=0x0000000000000000000000000000000a   # author
 P1='{"type":"registration"}'; P2='{"type":"weighing"}'; P3='{"type":"death"}'
 
-inv create_chain  --writer $W --animal_id $A --content_hash $(sha "$P1") --payload $(hex "$P1") --author $U
-inv append_record --writer $W --animal_id $A --expected_prev_hash $(sha "$P1") \
-  --content_hash $(sha "$P2") --payload $(hex "$P2") --kind 0 --author $U
-inv get_records --animal_id $A --from_seq 1 --limit 10
-inv close_chain   --writer $W --animal_id $A --expected_prev_hash $(sha "$P2") \
-  --content_hash $(sha "$P3") --payload $(hex "$P3") --author $U
-inv get_header --animal_id $A
+send "createChain(bytes16,bytes32,bytes,bytes16)" $A $(sha "$P1") $(hex "$P1") $U
+send "appendRecord(bytes16,bytes32,bytes32,bytes,uint8,bytes16)" \
+  $A $(sha "$P1") $(sha "$P2") $(hex "$P2") 0 $U
+call "getRecords(bytes16,uint32,uint32)((uint32,bytes32,bytes32,bytes,uint8,bytes16,uint64,uint64)[])" $A 1 10
+send "closeChain(bytes16,bytes32,bytes32,bytes,bytes16)" $A $(sha "$P2") $(sha "$P3") $(hex "$P3") $U
+call "getHeader(bytes16)((uint32,bytes32,bool,uint64))" $A
+
+# The same read through the mirror node, the path the public history uses:
+curl -s -X POST https://testnet.mirrornode.hedera.com/api/v1/contracts/call \
+  -H 'content-type: application/json' \
+  -d "{\"to\":\"$C\",\"data\":\"$(cast calldata 'getHeader(bytes16)' $A)\"}"
 ```
 
-What each invariant should refuse (the CLI prints `Error(Contract, #N)`):
+What each invariant should refuse (`cast` prints the custom error; decode an unknown selector with
+`cast decode-error <data> --sig '<Error>()'`):
 
 | Attempt | Expected |
 |---|---|
-| `create_chain` again on `$A` | `#2 ChainExists` |
-| `append_record` with a stale `--expected_prev_hash` | `#4 PrevHashMismatch` |
-| `append_record --kind 0` after `close_chain` | `#6 ChainClosed` |
-| `close_chain` a second time | `#6 ChainClosed` |
-| `append_record --kind 1` | `#7 TerminalViaAppend` |
-| `--content_hash` that is not `sha256(payload)` | `#8 HashMismatch` |
-| any write with `--writer` set to an address not in the writer set | `#1 NotWriter` |
-| any write signed by a different key than `--writer` | auth failure |
+| `createChain` again on `$A` | `ChainExists()` |
+| `appendRecord` with a stale `expectedPrevHash` | `PrevHashMismatch()` |
+| `appendRecord … 0` after `closeChain` | `ChainClosed()` |
+| `closeChain` a second time | `ChainClosed()` |
+| `appendRecord … 1` (Terminal) | `TerminalViaAppend()` |
+| a `contentHash` that is not `sha256(payload)` | `HashMismatch()` |
+| any write signed by a key not in the writer set | `NotWriter()` |
 
-`append_record --kind 2` on the closed chain **succeeds**, and `get_header` still
-reports `closed: true`.
+`appendRecord … 2` (Rectification) on the closed chain **succeeds**, and `getHeader` still reports
+`closed: true`.
 
-## Measurements to record (doc 06 / 07, Pending)
+## Measurements to record (documents 06 / 07, Pending)
+
+Local EVM gas from `forge test --gas-report` (Hedera charges gas with its own price; HBAR still to
+measure on Testnet):
 
 | Measure | Value |
 |---|---|
-| Rent + fee per `append_record` (~300-byte payload) | _to measure_ |
-| Append latency, submit → confirmed | _to measure_ |
-| Max safe `get_records` page at 8 KiB payloads (`MAX_PAGE` is provisionally 50) | _to measure_ |
-| Stellar CLI version used | _to record_ |
+| `appendRecord`, small payload | ~176 k gas (local) |
+| `createChain`, 4,096-byte payload | ~3.1 M gas (local; limit 15 M) |
+| HBAR per record, realistic and maximum payload | _to measure_ |
+| Latency submit → receipt, receipt → visible on mirror | _to measure_ |
+| Safe `MAX_PAGE` via mirror `contracts/call` at 4 KiB payloads (provisionally 20) | _to measure_ |
+| `msg.sender` for an ECDSA operator (EVM alias vs long-zero) | _to confirm_ |
+| Foundry / solc versions | forge 1.8.5, solc 0.8.28 (`evm_version = cancun`) |

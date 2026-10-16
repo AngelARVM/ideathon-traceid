@@ -18,7 +18,8 @@
       "!.next",
       "!dist",
       "!build",
-      "!prototype"
+      "!prototype",
+      "!contracts/*/lib"
     ]
   },
   "formatter": {

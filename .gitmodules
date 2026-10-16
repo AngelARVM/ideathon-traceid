@@ -1,0 +1,3 @@
+[submodule "contracts/traceid/lib/forge-std"]
+	path = contracts/traceid/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std

@@ -34,9 +34,14 @@ of history.**
 | Node.js | ≥ 20 LTS | Next.js 16 runtime | [nodejs.org](https://nodejs.org) |
 | npm | bundled with Node | The repo has `package-lock.json`, so npm is the package manager | — |
 | Docker + Docker Compose | current stable | Runs PostgreSQL locally | [docs.docker.com](https://docs.docker.com/get-docker/) |
-| Rust toolchain | current stable | Compiles the Soroban contract | [rustup.rs](https://rustup.rs) |
-| `wasm32v1-none` Rust target | matching toolchain | Soroban compilation target *(to be verified against the soroban-sdk version chosen in S3)* | `rustup target add …` |
-| Stellar CLI | current stable | Deploys and invokes the contract | [developers.stellar.org](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup) |
+| Rust toolchain | stable ≥ 1.84 (verified with 1.99.1) | Compiles the Soroban contract | [rustup.rs](https://rustup.rs) |
+| `wasm32v1-none` Rust target | matching toolchain | The only Wasm target Soroban accepts | `rustup target add wasm32v1-none` |
+| `soroban-sdk` | 29.0.1 (pinned in `contracts/traceid/Cargo.toml`) | Contract SDK; its major version must match the network protocol (Testnet: 29) | crates.io |
+| Stellar CLI | **≥ 25.2.0** (`soroban-sdk` 29 refuses to build a contract without it) | Builds, deploys and invokes the contract | [developers.stellar.org](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup) |
+
+> **Windows without Visual Studio:** use the GNU toolchain, which needs no MSVC Build Tools:
+> `rustup toolchain install stable-x86_64-pc-windows-gnu`, then
+> `rustup default stable-x86_64-pc-windows-gnu`. Contract tests: `cd contracts/traceid && cargo test`.
 
 No account on any paid service is required. There is **no API key** anywhere in this project:
 Stellar Testnet RPC and Friendbot are public and unauthenticated.
@@ -121,29 +126,27 @@ look like authorization failures.
 
 ### 7 — Build, deploy and initialize the contract
 
-From `contracts/traceid/` *(created in S3)*:
+From `contracts/traceid/`:
 
 ```bash
+cargo test                 # 21 tests, one or more per invariant
 stellar contract build
 stellar contract deploy \
   --wasm target/wasm32v1-none/release/traceid.wasm \
-  --source traceid-writer \
-  --network testnet
-```
-
-The deploy prints the **contract id** (`C…`). Copy it into `.env.local` as `STELLAR_CONTRACT_ID`.
-
-Then initialize it once, registering the admin and the authorized writer set:
-
-```bash
-stellar contract invoke \
-  --id <CONTRACT_ID> --source traceid-writer --network testnet \
-  -- init \
+  --source-account traceid-writer \
+  --network testnet \
+  -- \
   --admin <G_PUBLIC_KEY> \
   --writers '["<G_PUBLIC_KEY>"]'
 ```
 
-`init` may only be called once. Because the contract is **non-upgradeable** (document 06), fixing
+The contract has no separate `init`. Its constructor runs atomically inside the deploy with the
+arguments after `--`, which register the admin and the authorized writer set. The writer set
+cannot be changed afterwards. The deploy prints the **contract id** (`C…`). Copy it into
+`.env.local` as `STELLAR_CONTRACT_ID`.
+
+A full CLI walkthrough is in `contracts/traceid/README.md`: create, append, paginate, close, and
+watch each invariant reject. Because the contract is **non-upgradeable** (document 06), fixing
 a contract bug means repeating this whole section with a fresh contract id and re-seeding.
 
 ### 8 — Start the application
@@ -178,7 +181,7 @@ renders:
 ```bash
 stellar contract invoke \
   --id <CONTRACT_ID> --source traceid-writer --network testnet \
-  -- get_record --animal_id <ANIMAL_ID_HEX> --seq 1
+  -- get_record --animal_id <ANIMAL_ID_HEX> --seq 1    # 32 hex chars = the ULID's 16 bytes
 ```
 
 7. Open the public history `/a/<animal_id>` in a **logged-out** browser and confirm it shows
@@ -296,8 +299,9 @@ Pending. The functional requirement above is identical either way.)*
 
 ## Pending
 
-- **Exact tool versions** for the Rust toolchain, `soroban-sdk`, Stellar CLI and the wasm target.
-  These move together and must be pinned by actually building in S3, not copied from a guide.
+- **Exact tool versions.** Pinned in S3: Rust 1.99.1, `soroban-sdk` 29.0.1, `wasm32v1-none`,
+  contract tests green. Still open: the exact Stellar CLI version used for the first Testnet
+  deploy.
 - **Auth library and version** (document 04, Pending).
 - **Whether the drainer runs as a script, a dev-mode loop or a worker** — determines whether
   section 9 step 3 needs a manual command at all.

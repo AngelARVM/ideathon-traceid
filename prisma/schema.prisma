@@ -1,0 +1,160 @@
+// Esquema relacional de S1 (docs/05-data-model.md). Los modelos User, Session, Account y
+// Verification tienen la forma que exige Better Auth; el resto es dominio propio.
+// Nada de este archivo llega nunca a la cadena.
+
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  // Índices únicos parciales: los usa `lots` y los necesitan `animal_identifiers` (S2).
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Better Auth ────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id
+  // Better Auth llama `name` a este campo; en el modelo es el nombre visible.
+  name          String   @map("display_name")
+  email         String   @unique
+  emailVerified Boolean  @default(false) @map("email_verified")
+  image         String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sessions    Session[]
+  accounts    Account[]
+  memberships Membership[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// La contraseña (hash argon2) vive acá, en la cuenta `credential`, no en `users`.
+model Account {
+  id                    String    @id
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(6)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+// ── Dominio ────────────────────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(ulid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  memberships    Membership[]
+  establishments Establishment[]
+  lots           Lot[]
+
+  @@map("organizations")
+}
+
+enum MembershipRole {
+  owner
+  admin
+  operator
+  professional
+
+  @@map("membership_role")
+}
+
+model Membership {
+  id        String         @id @default(ulid())
+  orgId     String         @map("org_id")
+  userId    String         @map("user_id")
+  role      MembershipRole
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+model Establishment {
+  id           String   @id @default(ulid())
+  orgId        String   @map("org_id")
+  name         String
+  // Único texto, junto con `id`, que puede entrar en un payload público.
+  publicLabel  String   @map("public_label")
+  // Código del establecimiento (RENSPA), nunca el de un animal. Texto: conserva ceros.
+  officialCode String?  @map("official_code")
+  // Privados, solo PostgreSQL.
+  address      String?
+  lat          Decimal? @db.Decimal(9, 6)
+  lon          Decimal? @db.Decimal(9, 6)
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lots         Lot[]
+
+  @@index([orgId])
+  @@map("establishments")
+}
+
+model Lot {
+  id              String   @id @default(ulid())
+  orgId           String   @map("org_id")
+  establishmentId String   @map("establishment_id")
+  name            String
+  publicLabel     String   @map("public_label")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+
+  @@unique([establishmentId, name], map: "lots_establishment_name_active_uq", where: { active: true })
+  @@index([orgId])
+  @@map("lots")
+}

@@ -58,8 +58,10 @@ organizations ──┬── memberships ──── users
 
 **`organizations`** — `id` (ULID), `name`, `created_at`. The scope that owns records.
 
-**`users`** — `id`, `email` (unique), `password_hash` (argon2), `display_name`, `created_at`.
-Never on-chain.
+**`users`** — `id`, `email` (unique), `display_name`, `email_verified`, `image`, `created_at`,
+`updated_at`. Never on-chain. Shaped for Better Auth (ADR-0001): the argon2 password hash lives in
+**`accounts.password`** (provider `credential`), and Better Auth also owns `sessions`, `accounts`
+and `verifications`. None of the four ever reaches a payload.
 
 **`memberships`** — `id`, `org_id`, `user_id`, `role` (`owner` | `admin` | `operator` |
 `professional`), `created_at`. Unique on `(org_id, user_id)`. Seeded for the demo; invitation

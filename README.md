@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TraceID
 
-## Getting Started
+Trazabilidad individual de ganado bovino con historial verificable en Stellar (Testnet).
+La documentación de diseño está en [`docs/`](docs/README.md); el plan por etapas en
+[`docs/08-implementation-plan.md`](docs/08-implementation-plan.md).
 
-First, run the development server:
+**Estado:** S1 (Foundation) — base de datos, migraciones, usuarios sembrados y login.
+
+## Arranque local
+
+Requisitos: Node ≥ 20.12, Docker. Detalle completo en
+[`docs/07-setup-and-deployment.md`](docs/07-setup-and-deployment.md).
 
 ```bash
+npm install
+cp .env.example .env.local      # completar AUTH_SECRET: openssl rand -base64 32
+docker compose up -d            # PostgreSQL en localhost:54320
+npm run db:migrate
+npm run db:seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Entrar en `/login` con `owner@demo.local` / `demo1234` (otros usuarios: los imprime el seed).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | Qué hace |
+|---|---|
+| `dev`, `build`, `start` | Next.js |
+| `lint`, `format`, `typecheck` | Biome y TypeScript |
+| `db:generate` | Genera el cliente Prisma (también corre en `postinstall`) |
+| `db:migrate` | Aplica las migraciones de `prisma/migrations/` |
+| `db:migrate:dev` | Crea y aplica una migración desde `prisma/schema.prisma` |
+| `db:seed` | Datos de demo (`-- --reset` para volver a sembrar) |
+| `db:studio` | Prisma Studio |
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`prototype/` contiene el prototipo de UI con datos simulados: solo referencia visual, fuera del build.

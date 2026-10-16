@@ -85,15 +85,10 @@ limit is not the admin key but the custodial writer key, below.
 These are the Pending items from every document, gathered. **None may be resolved silently during
 implementation.** Each must be raised and decided.
 
-**Blocking before S1**
+**Blocking before S1** — resolved.
 
-- **O1 — Auth library.** Auth.js v5 works with Next.js 16 (`next-auth@beta`), but maintenance of
-  Auth.js/NextAuth passed to the Better Auth team in September 2025 and Auth.js's own
-  documentation now points new projects at **Better Auth**. The session settled on "Auth.js
-  credentials with seeded users"; whether that becomes Better Auth is live. The functional
-  requirement is identical either way. *(document 04)*
-- **O2 — Exact auth library version** pinned against Next.js 16.4.2, verified at install time.
-  *(documents 04, 07)*
+- ~~O1 — Auth library~~ and ~~O2 — version~~: Better Auth `1.7.x`. See
+  `docs/adr/0001-better-auth.md`.
 
 **Blocking before S3**
 

@@ -6,7 +6,8 @@ Documentation must be divided into **small stages**, coherent and actionable, wi
 unnecessarily expanding MVP scope. Deployment is manual. The listed out-of-scope items must not
 become MVP dependencies.
 
-No code has been implemented yet. The repository is a bare `create-next-app` tree.
+**Status (2026-10-16):** S1 implemented. The earlier UI prototype lives in `prototype/` as visual
+reference only — it runs on mock data and is excluded from the build.
 
 ## Proposed
 
@@ -46,10 +47,10 @@ This is why a chain integration that normally lands as one risky step lands as t
 **Goal:** a running app with a database, migrations, seeded users and working login.
 
 - `docker-compose.yml` with PostgreSQL + named volume + healthcheck.
-- Drizzle ORM + drizzle-kit; `db:migrate` script.
+- Prisma ORM + migrations; `db:migrate` script. *(Changed from Drizzle: ADR-0002.)*
 - Schema: `organizations`, `users`, `memberships`, `establishments`, `lots` (document 05).
 - Auth: seeded per-user accounts, argon2 hashes, server-side sessions, `requireMembership`
-  helper. **Resolve the Auth.js vs. Better Auth open question first** (document 04, Pending).
+  helper. *Resolved: Better Auth (ADR-0001).*
 - `db:seed` for orgs, users, memberships, establishments, lots.
 - `.env.example` committed; `.env.local` git-ignored.
 - Spanish app shell, mobile-first layout, environment banner.

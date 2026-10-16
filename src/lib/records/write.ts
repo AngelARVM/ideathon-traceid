@@ -382,8 +382,13 @@ export async function createAnimal(
   };
 }
 
+/**
+ * Prisma 7 no expone el nombre del índice en un lugar estable: con el adaptador `pg` viaja
+ * anidado en `meta.driverAdapterError.cause.constraint.index`. Se busca sobre el `meta`
+ * serializado para no depender de esa forma, que es interna del adaptador.
+ */
 function isUniqueViolation(err: unknown, constraint: string): boolean {
-  const meta = (err as { code?: string; meta?: { target?: unknown } }) ?? {};
-  if (meta.code !== "P2002") return false;
-  return JSON.stringify(meta.meta?.target ?? "").includes(constraint);
+  const known = (err ?? {}) as { code?: string; meta?: unknown };
+  if (known.code !== "P2002") return false;
+  return JSON.stringify(known.meta ?? "").includes(constraint);
 }

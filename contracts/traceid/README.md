@@ -1,7 +1,12 @@
-# traceid — Soroban contract (stage S3)
+# traceid — Soroban contract (stage S3) — **superseded**
+
+> **Superseded by [ADR-0003](../../docs/adr/0003-hedera-instead-of-stellar.md).** The network is now
+> Hedera; S3 replaces this crate with a Foundry project implementing the same invariants
+> ([`docs/06-hedera-contract.md`](../../docs/06-hedera-contract.md)). Kept until then as the
+> reference for porting the tests one-for-one.
 
 Append-only, hash-linked record chains, one per animal. Design and rationale are in
-[`docs/06-stellar-contract.md`](../../docs/06-stellar-contract.md). Setup and toolchain are in
+the Stellar version of document 06 in git history. Setup and toolchain are in
 [`docs/07-setup-and-deployment.md`](../../docs/07-setup-and-deployment.md).
 
 ```

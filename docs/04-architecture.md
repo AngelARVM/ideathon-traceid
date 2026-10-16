@@ -3,20 +3,20 @@
 ## Confirmed
 
 **Required technologies:** Next.js with TypeScript; PostgreSQL; Docker Compose to run PostgreSQL
-locally; Stellar Testnet; manual deployment for now. If Soroban is used, its contract and
-tooling are part of the technical design.
+locally; **Hedera Testnet** (the brief says Stellar Testnet — changed by ADR-0003); manual
+deployment for now. The contract and its tooling are part of the technical design.
 
 **PostgreSQL may serve search, indexes and operational function, but must not be the only
-source of the content presented as verified history.** Storing only a hash on Stellar with the
+source of the content presented as verified history.** Storing only a hash on-chain with the
 content in PostgreSQL does **not** satisfy the requirement. The history detail must obtain
-records directly from Stellar. Reconstructing an animal's whole life must not depend
-exclusively on recent RPC events.
+records directly from the network. Reconstructing an animal's whole life must not depend
+exclusively on recent events.
 
-**Must be documented:** the responsibilities of PostgreSQL and Stellar; the flow from load to
+**Must be documented:** the responsibilities of PostgreSQL and the network; the flow from load to
 confirmation; validations and authorization in both the application and the contract;
 prevention of duplicate chains for the same identifier; idempotency and double-submit
 protection; concurrency when two users append to the same animal; retries and reconciliation if
-Stellar confirms but the PostgreSQL update fails; key management and server-side-only signing if
+the network confirms but the PostgreSQL update fails; key management and server-side-only signing if
 custody is used; and the contract update policy and its effect on the immutability promise.
 
 **The contract must prevent** overwriting records, appending without authorization, and
@@ -25,8 +25,9 @@ sufficient.
 
 **Current repository state (verified):** bare `create-next-app` — Next.js `16.4.2`, React
 `19.3.0`, TypeScript `^5`, Biome `2.4.2`, with only `src/app/{layout,page}.tsx` and CSS. No
-PostgreSQL client, ORM, migration tool, auth library, Docker Compose file, Stellar/Soroban SDK
-or Rust toolchain is present. Every dependency below is a greenfield addition.
+PostgreSQL client, ORM, migration tool, auth library, Docker Compose file or chain SDK was
+present. Every dependency below is a greenfield addition. (S1–S2 have since added the database,
+auth and domain stack; S3 added a Soroban crate that ADR-0003 supersedes.)
 
 ## Proposed
 
@@ -42,21 +43,22 @@ or Rust toolchain is present. Every dependency below is a greenfield addition.
         │
         └── /a/<id>     (public, Server Components)
                  │
-                 └─► Soroban RPC ──► contract ── THE source of verified history
+                 └─► Hedera mirror node ──► contracts/call ──► contract state
+                                             THE source of verified history
 
-  Outbox drainer (manual script / dev loop)
+  Outbox drainer (manual script / "Procesar cola")
         │
-        └─► sign with custodial key ─► submit tx ─► Soroban RPC
+        └─► sign with custodial key ─► ContractExecuteTransaction ─► Hedera consensus nodes
                  │
+                 ├─► wait for receipt, then for the record to appear on the mirror
                  └─► settle outbox row + records row in PostgreSQL
 
-  reconcile script ─► reads contract ─► settles stuck outbox rows
-  ttl:extend script ─► extends persistent-entry TTL
+  reconcile script ─► reads contract via mirror ─► settles stuck outbox rows
 ```
 
 ### D1 — Division of responsibility
 
-| Concern | PostgreSQL | Soroban contract |
+| Concern | PostgreSQL | Hedera contract |
 |---|---|---|
 | Users, credentials, sessions | **Sole owner** | Never |
 | Organizations, memberships, establishments, lots | **Sole owner** | Never |
@@ -64,17 +66,18 @@ or Rust toolchain is present. Every dependency below is a greenfield addition.
 | Record payloads | Mirror, for search and operations | **Source of truth for verified history** |
 | Sequence, hash linkage, closed flag | Mirror | **Authoritative** |
 | Submission state (`pending`…`failed`), outbox | **Sole owner** | Never |
-| Transaction metadata (`tx_hash`, ledger) | Stored for convenience and explorer links | Not stored on-chain (would be circular) |
+| Transaction metadata (`tx_id`, `tx_hash`, consensus timestamp) | Stored for convenience and explorer links | Not stored in contract state (would be circular); served by the mirror |
 
 The rule that makes the brief's requirement hold: **the public history route has no code path to
 PostgreSQL record payloads.** It is not a convention — it is a module boundary (document 03).
 
 ### D2 — Full payload on-chain
 
-The full public payload of each record is stored in the contract's persistent storage
-(not just a hash), so the history is reconstructible from the contract alone. Storage layout,
-limits and costs are in document 06. The accepted consequence is that record size and field
-growth carry a direct on-chain cost and a hard 64 KiB per-entry ceiling.
+The full public payload of each record is stored in the contract's storage (not just a hash),
+so the history is reconstructible from the contract alone, read through the mirror node.
+Storage layout, limits and costs are in document 06. The accepted consequence is that record
+size carries a direct gas cost and a hard **4,096-byte** payload ceiling, set by Hedera's
+~6 KiB transaction size.
 
 ### D3 — The outbox pattern
 
@@ -84,9 +87,12 @@ Chain writes never happen inline with the HTTP request. The write path is:
    payload, computes `content_hash`, and in **one PostgreSQL transaction** inserts the `records`
    row (`status = 'pending'`) **and** an `outbox` row.
 2. The transaction commits. The user gets a response immediately; the record shows as `pending`.
-3. The **drainer** picks up outbox rows, signs with the custodial key, submits to Soroban, and on
-   confirmation settles both the outbox row and the `records` row (`status = 'confirmed'`, plus
-   `seq`, `tx_hash`, `ledger` as returned).
+3. The **drainer** picks up outbox rows, signs with the custodial key, submits a
+   `ContractExecuteTransaction`, waits for the consensus **receipt**, then waits (bounded) until
+   the mirror node returns the record, and only then settles both the outbox row and the
+   `records` row (`status = 'confirmed'`, plus `seq`, `tx_id`, `tx_hash`,
+   `consensus_timestamp`). A receipt without mirror visibility within the bound leaves the row
+   `submitted` for `reconcile`.
 
 Why the outbox rather than submitting inline:
 
@@ -99,7 +105,7 @@ Why the outbox rather than submitting inline:
 
 Staging consequence (document 08): the outbox is introduced in **S2 with a stub drainer that
 confirms rows without any chain**, so the whole `pending → confirmed` lifecycle and its UI are
-exercised before Soroban exists. S3 builds the contract; S4 replaces the stub with the real
+exercised before any chain exists. S3 builds the contract; S4 replaces the stub with the real
 submitter.
 
 ### D4 — Idempotency and double-submit
@@ -133,15 +139,16 @@ The chain cannot fork, and no ordering decision is made outside the contract. Th
 The chain — never PostgreSQL — decides what happened.
 
 The `reconcile` script walks every non-`confirmed` `records` row whose outbox row was submitted,
-reads the contract's animal header and the `(animal_id, seq)` entry, and settles the row from
-what it finds. A row the chain does not know about after its submission window is marked
+reads the contract's animal header and the `(animal_id, seq)` record through the mirror node, and
+settles the row from what it finds. Transaction metadata missing locally is recovered from the
+mirror's contract results for the contract. A row the chain does not know about after its submission window is marked
 `failed` and may be re-submitted under a **new** `seq` (document 02, R5.2). Accepted consequence:
 a record can exist on-chain while showing `pending` locally until reconciliation runs, so the
 operator UI must say "pending confirmation" and never hide it.
 
 ### D7 — Custodial signing and key management
 
-A **single custodial Stellar account** signs every write (the MVP choice). What this means, stated
+A **single custodial Hedera account** (ECDSA key) signs every write (the MVP choice). What this means, stated
 plainly because the brief requires it:
 
 - The network attests that **the TraceID platform** submitted a record. It does not attest who
@@ -154,14 +161,15 @@ plainly because the brief requires it:
 
 Key handling: the secret key lives only in a server-side environment variable, is never imported
 into client code, and signing happens exclusively in the drainer. The contract's authorization
-check is written against a **configurable set of authorized writer addresses** rather than a
-hard-coded one, so moving to one custodial account per organization later is a configuration
-change rather than a rewrite.
+check is written against a **set of authorized writer addresses fixed at construction** rather
+than a hard-coded one, so moving to one custodial account per organization later means deploying
+with a different set, not rewriting the contract.
 
 ### D8 — Contract update policy vs. the immutability promise
 
-The contract is **non-upgradeable**. There is no admin code-replacement path. Consequences, all
-accepted deliberately:
+The contract is **non-upgradeable**: no proxy, no `delegatecall`, and it is created **without a
+Hedera admin key**, so it cannot be updated or deleted. Consequences, all accepted
+deliberately:
 
 - The immutability promise is as strong as a deployed contract's logic can make it: no one,
   including the project, can change the rules after deployment.
@@ -211,7 +219,7 @@ consistently with the payload's `type`; a mismatch is detectable by anyone recom
 
 - Database: a partial unique index on the active official identifier, and a check that a second
   open chain cannot be created for an identifier that already has one.
-- Contract: `create_chain` fails if the animal's header entry already exists.
+- Contract: `createChain` reverts (`ChainExists`) if the animal's header already exists.
 
 Both are required: the database rule is the usable error message, the contract rule is the
 guarantee.
@@ -226,11 +234,13 @@ guarantee.
 | Auth | Better Auth `1.7.x` + Prisma adapter | Decided in S1, see ADR-0001. Middleware is now `proxy.ts` |
 | Password hashing | argon2 | — |
 | Ids | ULID | Sortable, opaque, short enough for the 250-byte key limit |
-| Stellar | `@stellar/stellar-sdk` | RPC + transaction building |
-| Contract | Rust + `soroban-sdk`, Stellar CLI | New `contracts/` directory |
+| Hedera writes | `@hashgraph/sdk` | `ContractExecuteTransaction`, receipts. ADR-0003 |
+| Hedera reads | mirror node REST + an ABI coder (`viem` or `ethers`, chosen in S4) | No SDK needed for reads |
+| Contract | Solidity `0.8.x` + Foundry | `contracts/traceid/` (replaces the Soroban crate) |
 | Local PostgreSQL | Docker Compose | Per the brief |
 
-No paid service, no API key that the provider does not actually require.
+No paid service, no API key that the provider does not actually require. A free Hedera
+Developer Portal account provides the Testnet operator account.
 
 ## Pending
 
@@ -241,10 +251,10 @@ No paid service, no API key that the provider does not actually require.
   also exposes a "Procesar cola" button, which is the same manual invocation without leaving the
   app — it is what makes the `pending → confirmed` transition demoable. No interval loop and no
   worker: a single writer is what keeps `prev_hash` linked without extra coordination.
-- **Retry bounds and backoff** for `prev_hash` contention and RPC errors (attempt count, delay,
+- **Retry bounds and backoff** for `prev_hash` contention and network or mirror errors (attempt count, delay,
   and what makes a failure terminal).
-- **Measured per-record rent cost on Testnet** — only S3 can produce a real number.
-- **Whether `tx_hash` and ledger metadata require an index or historical access** for records
-  whose transactions have aged out of RPC retention. The payloads are reconstructible from
-  contract storage, but transaction metadata may not be; the fallback is to display the
-  stored-in-PostgreSQL value clearly labelled as unverified metadata.
+- **Measured per-record gas/HBAR cost on Testnet** — only S3 can produce a real number.
+- **Mirror poll bound** for settling `confirmed` after the receipt (document 06, Pending).
+- ~~Whether transaction metadata requires an index for transactions aged out of RPC
+  retention.~~ *Resolved by ADR-0003:* the mirror node keeps contract results for the network's
+  life; between Testnet resets, metadata is always re-readable.

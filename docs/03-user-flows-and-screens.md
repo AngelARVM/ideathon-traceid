@@ -8,7 +8,7 @@ animal, and few steps to load a milestone.
 Required screens/capabilities: authentication for writes; animal list with identifier search and
 basic filters; fast identification and access by QR; animal creation with first record; simple
 milestone loading; explicit chain closure with confirmation; public animal history without
-login; display of hashes and Stellar references; clear states for pending, confirmed and failed
+login; display of hashes and network references (Hedera, ADR-0003); clear states for pending, confirmed and failed
 records.
 
 ## Proposed
@@ -35,8 +35,8 @@ are **separate routes with separate data access layers**:
 
 - `/animals/<id>` may read PostgreSQL for speed, and shows `pending` / `submitted` / `failed`
   records that do not exist on-chain yet.
-- `/a/<animal_id>` reads **only** the Soroban contract. It has no code path to the PostgreSQL
-  record payloads at all.
+- `/a/<animal_id>` reads **only** the contract, through the Hedera mirror node. It has no code
+  path to the PostgreSQL record payloads at all.
 
 This is deliberate and must not be "simplified" into one route with a toggle. A single route
 serving both audiences is exactly how cached database content ends up rendered as verified
@@ -105,14 +105,14 @@ identifier** to confirm. The screen states plainly, before confirmation:
 `/a/<animal_id>` is server-rendered and reads the contract live:
 
 - **Header** — official identifier(s) including replaced ones, species, chain status
-  (open/closed), record count, and a prominent environment banner: *"Datos anclados en Stellar
+  (open/closed), record count, and a prominent environment banner: *"Datos anclados en Hedera
   Testnet, un entorno de demostración sujeto a reinicios."*
 - **Verification summary** — one of three states, never ambiguous:
   - ✅ *Verificado* — every record read from the contract and every content hash recomputed and
     matched, linkage intact.
   - ⚠️ *Falla de integridad* — a record's recomputed hash or `prev_hash` linkage does not match.
     Shown loudly, with the offending `seq`.
-  - ⛔ *No se pudo verificar* — the contract or RPC was unreachable. **No history content is
+  - ⛔ *No se pudo verificar* — the mirror node was unreachable or timed out. **No history content is
     presented as verified.** This state never silently degrades into a cached render.
 - **Timeline** — one card per record in `seq` order: type, `occurred_at`, `recorded_at`, public
   content, and a per-record verification badge. Rectified records carry a "rectificado por #N"
@@ -122,9 +122,9 @@ identifier** to confirm. The screen states plainly, before confirmation:
   truthfulness of the declared fact is not verified by anyone.
 
 `/a/<animal_id>/records/<seq>` is the evidence screen for one record: the full canonical payload
-as it was hashed, `content_hash`, `prev_hash`, `tx_hash`, network passphrase/name, contract id,
-ledger sequence, explorer link, and the recomputed-hash comparison result shown as a
-side-by-side.
+as it was hashed, `content_hash`, `prev_hash`, transaction ID and hash, network name, contract id
+(`0.0.x` and EVM address), consensus timestamp, HashScan link, the mirror URL the data was read
+from, and the recomputed-hash comparison result shown as a side-by-side.
 
 ### Mobile and offline posture
 
@@ -143,7 +143,8 @@ side-by-side.
   it but duplicates data. Current proposal embeds labels on-chain and keeps the public route's
   database access limited to resolving nothing more than the animal's existence.
 - **Live update mechanism for `pending` → `confirmed`.** Polling, streaming, or a manual refresh
-  button. Polling is the assumed default but has not been decided.
+  button. Polling is the assumed default but has not been decided. On Hedera the wait has two
+  parts — consensus receipt, then mirror visibility — measured in S3.
 - **Exact Spanish microcopy** for the three verification states and the limitations panel. The
   wording carries the project's honesty burden and deserves a review pass with a producer.
 - **Whether the animal list needs pagination in the MVP.** Depends on the seeded fixture size.

@@ -29,7 +29,8 @@ species and countries; native mobile apps; deployment automation. None of these 
 introduced as an MVP dependency.
 
 **Minimum acceptance journey.** It must be possible to create an animal, record several
-milestones, find them on Stellar, consult the animal's history publicly, verify its integrity,
+milestones, find them on the network (Hedera Testnet since ADR-0003; the brief says Stellar),
+consult the animal's history publicly, verify its integrity,
 close its chain, and confirm the chain rejects further ordinary milestones.
 
 ## Proposed
@@ -47,8 +48,8 @@ conflating them is the main reputational risk of a traceability product:
 The public history UI must state the bottom two limitations where a reader will see them, not
 in a buried disclaimer.
 
-**Demo environment is explicitly ephemeral.** Stellar Testnet is a demonstration network
-subject to resets and offers no permanent preservation of history. A deterministic seed can
+**Demo environment is explicitly ephemeral.** Hedera Testnet is a demonstration network
+subject to resets (roughly quarterly) and offers no permanent preservation of history. A deterministic seed can
 re-create the demo fixtures in both PostgreSQL and the contract after a reset; anything a user
 typed live during a demo is permanently lost. This is stated in the setup document and in the
 UI's environment banner.
@@ -71,6 +72,6 @@ a line in this document or in document 02 is out of scope by default and belongs
   scope — but the absence of an identified first verifier is the project's largest commercial
   unknown.
 - **Whether "resistant to later modification" is a strong enough promise on Testnet.** The
-  contract enforces immutability, but the network it runs on can be reset and its storage
-  entries can be archived (see documents 06 and 10). The honest framing of this in
-  producer-facing language is not settled.
+  contract enforces immutability and its storage does not expire, but the network it runs on is
+  reset periodically (see documents 06 and 10). The honest framing of this in producer-facing
+  language is not settled.

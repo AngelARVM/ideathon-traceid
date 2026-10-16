@@ -1,6 +1,7 @@
 # TraceID
 
-Trazabilidad individual de ganado bovino con historial verificable en Stellar (Testnet).
+Trazabilidad individual de ganado bovino con historial verificable en Hedera (Testnet).
+La red cambió de Stellar a Hedera: ver [`docs/adr/0003-hedera-instead-of-stellar.md`](docs/adr/0003-hedera-instead-of-stellar.md).
 La documentación de diseño está en [`docs/`](docs/README.md); el plan por etapas en
 [`docs/08-implementation-plan.md`](docs/08-implementation-plan.md).
 

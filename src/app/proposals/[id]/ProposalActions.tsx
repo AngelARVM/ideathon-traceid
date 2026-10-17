@@ -17,7 +17,7 @@ import {
 import { exceeds } from "@/lib/negotiation/terms";
 
 const card =
-  "flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900";
+  "flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-card";
 
 // ── Vendedor ─────────────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ export function SellerActions({
 
   return (
     <div className={card}>
-      <h2 className="font-semibold">Tu respuesta</h2>
+      <h2 className="font-bold text-gray-900">Tu respuesta</h2>
       <FormError message={error} />
       <div className="flex flex-wrap gap-2">
         {canAccept && (
@@ -114,9 +114,9 @@ function CounterForm({
   return (
     <form
       action={action}
-      className="flex flex-col gap-4 border-t border-stone-100 pt-4 dark:border-stone-800"
+      className="flex flex-col gap-4 border-t border-gray-100 pt-4"
     >
-      <p className="text-sm text-stone-600 dark:text-stone-400">
+      <p className="text-sm text-gray-500">
         Una sola contraoferta: el comprador solo podrá aceptarla o rechazarla.
       </p>
       {state?.ok === false && <FormError message={state.error} />}
@@ -211,7 +211,7 @@ export function BuyerActions({
 
   return (
     <div className={card}>
-      <h2 className="font-semibold">
+      <h2 className="font-bold text-gray-900">
         {countered ? "Responder la contraoferta" : "Confirmar el acuerdo"}
       </h2>
       <FormError message={error} />
@@ -245,17 +245,12 @@ export function BuyerActions({
                 : "Confirmar acuerdo"}
           </Button>
           {blockReason && (
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              {blockReason}
-            </p>
+            <p className="text-sm font-medium text-amber-800">{blockReason}</p>
           )}
         </div>
       </form>
       {countered && (
-        <form
-          action={reject}
-          className="border-t border-stone-100 pt-4 dark:border-stone-800"
-        >
+        <form action={reject} className="border-t border-gray-100 pt-4">
           <Button type="submit" variant="ghost" disabled={busy}>
             <Ban className="h-4 w-4" aria-hidden />
             {rejecting ? "Rechazando…" : "Rechazar contraoferta"}

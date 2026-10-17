@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FileCheck2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -14,8 +14,12 @@ export const metadata: Metadata = { title: "Acuerdos" };
 
 export default function AgreementsPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <Suspense fallback={<div className="h-96" />}>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <Suspense
+        fallback={
+          <div className="h-96 animate-pulse rounded-xl bg-gray-200/60" />
+        }
+      >
         <AgreementsContent />
       </Suspense>
     </div>
@@ -30,7 +34,7 @@ async function AgreementsContent() {
     <>
       <PageHeader
         title="Acuerdos"
-        description="Acuerdos comerciales declarados en los que sos parte."
+        description="Acuerdos declarados en los que sos parte. Pago, flete y entrega se coordinan fuera de SubMarket."
       />
       {agreements.length === 0 ? (
         <EmptyState
@@ -38,34 +42,47 @@ async function AgreementsContent() {
           description="Cuando se confirme una propuesta, su comprobante va a aparecer acá."
         />
       ) : (
-        <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm dark:divide-stone-800 dark:border-stone-800 dark:bg-stone-900">
+        <ul className="grid gap-4 md:grid-cols-2">
           {agreements.map((a) => (
             <li key={a.id}>
               <Link
                 href={`/agreements/${a.id}`}
-                className="flex items-center gap-4 px-4 py-3 transition hover:bg-stone-50 dark:hover:bg-stone-800/60"
+                className="group flex h-full flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-card transition hover:border-brand-300 hover:shadow-card-hover"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{a.offerTitle}</p>
-                  <p className="truncate text-xs text-stone-600 dark:text-stone-400">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 font-mono-num text-xs font-bold text-gray-500">
+                    <FileCheck2
+                      className="h-4 w-4 text-brand-600"
+                      aria-hidden
+                    />
+                    N° {shortId(a.id)}
+                  </span>
+                  <span className="text-[11px] text-gray-400">
+                    {formatDateTime(a.confirmedAt)}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <h2 className="truncate font-sans text-sm font-bold text-gray-900 group-hover:text-brand-600">
+                    {a.offerTitle}
+                  </h2>
+                  <p className="mt-0.5 truncate text-xs text-gray-500">
                     {CATEGORY_LABEL[a.category]} ·{" "}
                     {a.viewerRole === "buyer" ? "Vendedor" : "Comprador"}:{" "}
-                    {a.counterparty} · N° {shortId(a.id)} ·{" "}
-                    {formatDateTime(a.confirmedAt)}
+                    {a.counterparty}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-mono-num text-sm font-semibold">
-                    {formatArs(a.totalAmount)}
-                  </p>
-                  <p className="font-mono-num text-xs text-stone-500 dark:text-stone-400">
+                <div className="mt-auto flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-slate-50 px-3 py-2">
+                  <span className="font-mono-num text-xs font-semibold text-gray-700">
                     {formatTons(a.quantityTons)}
-                  </p>
+                  </span>
+                  <span className="flex items-center gap-1 font-mono-num text-sm font-extrabold text-brand-600">
+                    {formatArs(a.totalAmount)}
+                    <ChevronRight
+                      className="h-4 w-4 text-gray-400"
+                      aria-hidden
+                    />
+                  </span>
                 </div>
-                <ChevronRight
-                  className="h-4 w-4 shrink-0 text-stone-400"
-                  aria-hidden
-                />
               </Link>
             </li>
           ))}

@@ -1,18 +1,15 @@
-import { CalendarClock, MapPin, Navigation } from "lucide-react";
+import { CalendarClock, ChevronRight, MapPin, Navigation } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { OfferStatusBadge } from "@/components/StatusBadge";
 import { LinkButton } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { PageHeader } from "@/components/ui/PageHeader";
-import {
-  formatArsPerTon,
-  formatDate,
-  formatKm,
-  formatTons,
-} from "@/lib/format";
+import { CATEGORY_IMAGE } from "@/lib/category-media";
+import { formatArs, formatDate, formatKm, formatTons } from "@/lib/format";
 import { CATEGORY_LABEL, PROVINCE_LABEL } from "@/lib/labels";
 import { getOfferToPropose } from "@/lib/negotiation/queries";
 import { requirePersona } from "@/lib/persona";
@@ -27,7 +24,11 @@ export default function ProposePage({
 }) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <Suspense fallback={<div className="h-96" />}>
+      <Suspense
+        fallback={
+          <div className="h-96 animate-pulse rounded-xl bg-gray-200/60" />
+        }
+      >
         <ProposeContent params={params} />
       </Suspense>
     </div>
@@ -55,71 +56,95 @@ async function ProposeContent({ params }: { params: Promise<{ id: string }> }) {
   if (!offer) notFound();
 
   const soldOut = Number(offer.quantityTons) <= 0;
+  const image = CATEGORY_IMAGE[offer.category];
 
   return (
-    <>
-      <PageHeader
-        title="Proponer compra"
-        description="Proponé cantidad y precio. El vendedor puede aceptar, rechazar o contraofertar una vez."
-      />
+    <div className="space-y-6">
+      <nav
+        aria-label="Ruta"
+        className="flex min-w-0 items-center gap-1 text-xs text-gray-500"
+      >
+        <Link href="/offers" className="shrink-0 hover:text-brand-600">
+          Catálogo
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <Link
+          href={`/offers/${offer.id}`}
+          className="truncate hover:text-brand-600"
+        >
+          {offer.title}
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span className="shrink-0 font-semibold text-gray-800">Proponer</span>
+      </nav>
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <span className="rounded-lg bg-campo-50 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-campo-800 dark:bg-campo-950/60 dark:text-campo-200">
-            {CATEGORY_LABEL[offer.category]}
-          </span>
-          <OfferStatusBadge
-            status={offer.status}
-            quantityTons={offer.quantityTons}
+      <div>
+        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">
+          Proponer compra
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Proponé cantidad y precio. El vendedor puede aceptar, rechazar o
+          contraofertar una vez.
+        </p>
+      </div>
+
+      <Card className="flex gap-4 p-4">
+        <div className="relative hidden h-24 w-32 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:block">
+          <Image
+            src={image.src}
+            alt={image.alt}
+            fill
+            sizes="128px"
+            className="object-cover"
           />
         </div>
-        <h2 className="mt-3 text-lg font-bold">
-          <Link
-            href={`/offers/${offer.id}`}
-            className="hover:text-campo-700 dark:hover:text-campo-300"
-          >
-            {offer.title}
-          </Link>
-        </h2>
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-stone-600 dark:text-stone-400">
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="h-4 w-4" aria-hidden />
-            {offer.locality.name}, {PROVINCE_LABEL[offer.locality.province]} ·{" "}
-            {offer.sellerName}
-          </span>
-          <span
-            className="inline-flex items-center gap-1"
-            title="Aprox., en línea recta"
-          >
-            <Navigation className="h-4 w-4" aria-hidden />
-            {formatKm(offer.distanceKm)} desde {persona.locality.name} (aprox.,
-            en línea recta)
-          </span>
-        </p>
-        <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-stone-100 pt-4 dark:border-stone-800">
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-stone-500 dark:text-stone-400">
-              Disponible
-            </dt>
-            <dd className="font-mono-num text-lg font-bold">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-800">
+              {CATEGORY_LABEL[offer.category]}
+            </span>
+            <OfferStatusBadge
+              status={offer.status}
+              quantityTons={offer.quantityTons}
+            />
+          </div>
+          <h2 className="truncate font-bold text-gray-900">
+            <Link href={`/offers/${offer.id}`} className="hover:text-brand-600">
+              {offer.title}
+            </Link>
+          </h2>
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-brand-600" aria-hidden />
+              {offer.locality.name}, {PROVINCE_LABEL[offer.locality.province]} ·{" "}
+              {offer.sellerName}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Navigation className="h-3.5 w-3.5" aria-hidden />
+              {formatKm(offer.distanceKm)} · aprox., en línea recta
+            </span>
+          </p>
+          <p className="text-xs text-gray-600">
+            <span className="font-mono-num font-bold text-gray-900">
               {formatTons(offer.quantityTons)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-stone-500 dark:text-stone-400">
-              Precio de referencia
-            </dt>
-            <dd className="font-mono-num text-lg font-bold text-campo-700 dark:text-campo-300">
-              {offer.pricePerTon
-                ? formatArsPerTon(offer.pricePerTon)
-                : "A convenir"}
-            </dd>
-          </div>
-        </dl>
-      </section>
+            </span>{" "}
+            disponibles ·{" "}
+            {offer.pricePerTon ? (
+              <>
+                <span className="font-mono-num font-bold text-brand-600">
+                  {formatArs(offer.pricePerTon)}
+                </span>{" "}
+                / Tn de referencia
+              </>
+            ) : (
+              "Precio a convenir"
+            )}
+          </p>
+        </div>
+      </Card>
 
       {offer.status === "estimated" && (
-        <p className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
+        <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <CalendarClock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
             <strong>Oferta estimada</strong>
@@ -131,30 +156,28 @@ async function ProposeContent({ params }: { params: Promise<{ id: string }> }) {
         </p>
       )}
 
-      <div className="mt-6">
-        {soldOut ? (
-          <EmptyState
-            title="Oferta agotada"
-            description="Esta oferta no tiene stock y no admite propuestas nuevas."
-          />
-        ) : offer.openProposalId ? (
-          <EmptyState
-            title="Ya tenés una propuesta abierta sobre esta oferta"
-            description="Seguí la negociación desde la propuesta existente."
-            action={
-              <LinkButton href={`/proposals/${offer.openProposalId}`}>
-                Ver mi propuesta
-              </LinkButton>
-            }
-          />
-        ) : (
-          <ProposalForm
-            offerId={offer.id}
-            stockTons={offer.quantityTons}
-            referencePrice={offer.pricePerTon}
-          />
-        )}
-      </div>
-    </>
+      {soldOut ? (
+        <EmptyState
+          title="Oferta agotada"
+          description="Esta oferta no tiene stock y no admite propuestas nuevas."
+        />
+      ) : offer.openProposalId ? (
+        <EmptyState
+          title="Ya tenés una propuesta abierta sobre esta oferta"
+          description="Seguí la negociación desde la propuesta existente."
+          action={
+            <LinkButton href={`/proposals/${offer.openProposalId}`}>
+              Ver mi propuesta
+            </LinkButton>
+          }
+        />
+      ) : (
+        <ProposalForm
+          offerId={offer.id}
+          stockTons={offer.quantityTons}
+          referencePrice={offer.pricePerTon}
+        />
+      )}
+    </div>
   );
 }

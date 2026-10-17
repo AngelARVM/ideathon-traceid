@@ -1,10 +1,36 @@
-import { Home, ListFilter, LogIn, LogOut } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { LogoMark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
+import { NavLink } from "@/components/NavLink";
+import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { signOut } from "@/lib/auth-actions";
-import { getCurrentUser } from "@/lib/session";
+import { LinkButton } from "@/components/ui/Button";
+import type { Role } from "@/generated/prisma/enums";
+import { getPersona } from "@/lib/persona";
+
+// Navegación por rol (docs/00-mvp-spec.md §10).
+const NAV: Record<Role, { href: string; label: string }[]> = {
+  seller: [
+    { href: "/ofertas", label: "Explorar" },
+    { href: "/demandas", label: "Demandas" },
+    { href: "/mis-ofertas", label: "Mis ofertas" },
+    { href: "/propuestas", label: "Propuestas" },
+    { href: "/acuerdos", label: "Acuerdos" },
+  ],
+  buyer: [
+    { href: "/ofertas", label: "Explorar" },
+    { href: "/demandas", label: "Demandas" },
+    { href: "/mis-demandas", label: "Mis demandas" },
+    { href: "/propuestas", label: "Propuestas" },
+    { href: "/acuerdos", label: "Acuerdos" },
+  ],
+};
+
+const PUBLISH: Record<Role, { href: string; label: string }> = {
+  seller: { href: "/ofertas/nueva", label: "Publicar oferta" },
+  buyer: { href: "/demandas/nueva", label: "Publicar demanda" },
+};
 
 export function SiteHeader() {
   return (
@@ -12,101 +38,68 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-3 sm:px-6">
         <Link
           href="/"
-          className="group flex min-w-0 items-center gap-2.5 sm:gap-3"
-          aria-label="TraceID, ir al inicio"
+          className="group min-w-0"
+          aria-label="SubMarket, ir al inicio"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-campo-600 text-white shadow-md shadow-campo-950/15 transition-colors group-hover:bg-campo-700">
-            <LogoMark className="h-6 w-6" />
-          </span>
-          <span className="min-w-0">
-            <span className="flex items-center gap-1.5">
-              <span className="text-lg font-bold tracking-tight text-stone-950 dark:text-white">
-                Trace
-                <span className="text-campo-600 dark:text-campo-300">ID</span>
-              </span>
-              <span className="rounded border border-campo-200 bg-campo-100 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-campo-800 dark:border-campo-800 dark:bg-campo-950 dark:text-campo-200">
-                NEA
-              </span>
-            </span>
-            <span className="hidden truncate text-[11px] leading-none text-stone-500 dark:text-stone-400 sm:block">
-              Trazabilidad bovina individual
-            </span>
-          </span>
+          <Logo />
         </Link>
-
-        <div className="flex items-center gap-1 sm:gap-2">
-          <nav
-            aria-label="Principal"
-            className="hidden items-center gap-1 md:flex"
-          >
-            <Link
-              href="/"
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-campo-700 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-campo-300"
-            >
-              <Home className="h-4 w-4" aria-hidden /> Inicio
-            </Link>
-          </nav>
-          <ThemeToggle />
-          <span
-            className="mx-1 hidden h-6 w-px bg-stone-200 dark:bg-stone-700 sm:block"
-            aria-hidden
-          />
-          {/* La sesión se lee por request: queda fuera del shell estático. */}
-          <Suspense fallback={<div className="h-9 w-24" />}>
-            <UserNav />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* La persona se lee de la cookie por request: queda fuera del shell estático. */}
+          <Suspense fallback={<div className="h-10 w-40" />}>
+            <PersonaActions />
           </Suspense>
+          <ThemeToggle />
         </div>
       </div>
+      <Suspense fallback={null}>
+        <RoleNav />
+      </Suspense>
     </header>
   );
 }
 
-async function UserNav() {
-  const user = await getCurrentUser();
-
-  if (!user) {
+async function PersonaActions() {
+  const persona = await getPersona();
+  if (!persona) {
     return (
-      <Link
-        href="/login"
-        className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-campo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-campo-700"
-      >
-        <LogIn className="w-4 h-4" />
-        <span className="hidden sm:inline">Ingresar</span>
-        <span className="sm:hidden">Entrar</span>
-      </Link>
+      <LinkButton href="/" size="sm">
+        Elegir persona
+      </LinkButton>
     );
   }
+  const publish = PUBLISH[persona.role];
+  return (
+    <>
+      <LinkButton
+        href={publish.href}
+        size="sm"
+        className="hidden sm:inline-flex"
+      >
+        <Plus className="h-4 w-4" aria-hidden />
+        {publish.label}
+      </LinkButton>
+      <PersonaSwitcher persona={persona} />
+    </>
+  );
+}
 
+async function RoleNav() {
+  const persona = await getPersona();
+  if (!persona) return null;
+  const publish = PUBLISH[persona.role];
   return (
     <nav
-      className="flex min-w-0 items-center gap-1.5 text-sm sm:gap-2"
-      aria-label="Cuenta"
+      aria-label="Principal"
+      className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-3 pb-2 sm:px-6"
     >
-      <Link
-        href="/animals"
-        className="inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-semibold text-campo-700 transition hover:bg-campo-50 dark:text-campo-300 dark:hover:bg-campo-950/60 sm:px-3"
-      >
-        <ListFilter className="h-4 w-4" aria-hidden />
-        <span className="hidden sm:inline">Rodeo y animales</span>
-        <span className="sm:hidden">Rodeo</span>
-      </Link>
-      <span className="hidden max-w-36 items-center gap-1.5 truncate rounded-lg border border-campo-200 bg-campo-50 px-2.5 py-1 text-xs font-medium text-campo-800 dark:border-campo-800 dark:bg-campo-950/60 dark:text-campo-200 lg:inline-flex">
-        <span
-          className="h-1.5 w-1.5 shrink-0 rounded-full bg-campo-500"
-          aria-hidden
-        />
-        <span className="truncate">{user.name}</span>
+      {NAV[persona.role].map((item) => (
+        <NavLink key={item.href} href={item.href}>
+          {item.label}
+        </NavLink>
+      ))}
+      <span className="sm:hidden">
+        <NavLink href={publish.href}>{publish.label}</NavLink>
       </span>
-      <form action={signOut}>
-        <button
-          type="submit"
-          aria-label="Salir"
-          className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-stone-200 px-2.5 text-xs font-medium text-stone-700 transition hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800 sm:px-3"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Salir</span>
-        </button>
-      </form>
     </nav>
   );
 }

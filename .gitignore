@@ -45,6 +45,3 @@ next-env.d.ts
 skills-lock.json
 # prisma client (generado por `prisma generate`)
 /src/generated/
-# foundry
-/contracts/*/out/
-/contracts/*/cache/

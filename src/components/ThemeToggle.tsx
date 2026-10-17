@@ -7,7 +7,7 @@ export function ThemeToggle() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("traceid_dark_mode");
+    const saved = window.localStorage.getItem("submarket_dark_mode");
     const enabled =
       saved === null
         ? window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -19,7 +19,7 @@ export function ThemeToggle() {
   function toggle() {
     const next = !dark;
     document.documentElement.classList.toggle("dark", next);
-    window.localStorage.setItem("traceid_dark_mode", String(next));
+    window.localStorage.setItem("submarket_dark_mode", String(next));
     setDark(next);
   }
 

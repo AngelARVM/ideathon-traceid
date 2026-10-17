@@ -14,7 +14,7 @@ export default function NotFound() {
         Página no encontrada
       </h1>
       <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
-        La ruta solicitada no existe en TraceID.
+        La página que buscás no existe o no tenés acceso a ella.
       </p>
       <Link
         href="/"

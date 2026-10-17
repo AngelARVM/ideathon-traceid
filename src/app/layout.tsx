@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
-import { EnvironmentBanner } from "@/components/EnvironmentBanner";
+import { DemoBanner } from "@/components/DemoBanner";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
@@ -17,17 +17,18 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
+const title = "SubMarket · Subproductos agroindustriales NEA";
 const description =
-  "TraceID: registro individual de ganado bovino para productores del nordeste argentino.";
+  "SubMarket conecta a quienes generan subproductos agroindustriales en Corrientes, Misiones y Chaco con compradores cercanos.";
 
 export const metadata: Metadata = {
   title: {
-    default: "TraceID · Trazabilidad Bovina NEA",
-    template: "%s · TraceID",
+    default: title,
+    template: "%s · SubMarket",
   },
   description,
   openGraph: {
-    title: "TraceID · Trazabilidad Bovina NEA",
+    title,
     description,
     type: "website",
   },
@@ -43,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${jakarta.variable} ${plexMono.variable}`}>
       <body className="min-h-dvh flex flex-col bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100 font-sans antialiased selection:bg-campo-200 dark:selection:bg-campo-900/60">
-        <EnvironmentBanner />
+        <DemoBanner />
         <SiteHeader />
         <main className="flex-1 w-full">{children}</main>
         <SiteFooter />

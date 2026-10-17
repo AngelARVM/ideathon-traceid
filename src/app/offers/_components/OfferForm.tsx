@@ -1,11 +1,12 @@
 "use client";
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { type ReactNode, useActionState, useRef, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { OfferCard, type OfferCardData } from "@/components/OfferCard";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { FormError } from "@/components/ui/FormError";
+import { FormSection } from "@/components/ui/FormSection";
 import { Steps } from "@/components/ui/Steps";
 import {
   Category,
@@ -67,7 +68,7 @@ const errorSteps = (errors: Record<string, string>) => [
 ];
 
 /**
- * Wizard de alta y edición de ofertas (el `PublishProductView` de codigo-ui). Todos los campos
+ * Wizard de alta y edición de ofertas. Todos los campos
  * viven en un solo `<form>`: los pasos se ocultan con CSS, no se desmontan, y se envía una vez.
  */
 export function OfferForm({
@@ -193,36 +194,6 @@ function readValues(formData: FormData): OfferFormValues {
   return values;
 }
 
-function Panel({
-  index,
-  current,
-  title,
-  description,
-  children,
-}: {
-  index: number;
-  current: number;
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <fieldset
-      data-step={index}
-      className={`rounded-xl border border-gray-200 bg-white shadow-card ${index === current ? "" : "hidden"}`}
-    >
-      <legend className="sr-only">{title}</legend>
-      <div className="border-b border-gray-100 px-5 py-4 sm:px-6">
-        <h2 className="text-lg font-bold text-gray-900">
-          {index + 1}. {title}
-        </h2>
-        <p className="mt-0.5 text-sm text-gray-500">{description}</p>
-      </div>
-      <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">{children}</div>
-    </fieldset>
-  );
-}
-
 function Fields({
   step,
   values: v,
@@ -243,9 +214,9 @@ function Fields({
 
   return (
     <>
-      <Panel
-        index={0}
-        current={step}
+      <FormSection
+        n={1}
+        step={{ index: 0, current: step }}
         title="Identificación"
         description="Qué subproducto ofrecés y cómo lo describirías."
       >
@@ -300,11 +271,11 @@ function Fields({
             />
           </Field>
         </div>
-      </Panel>
+      </FormSection>
 
-      <Panel
-        index={1}
-        current={step}
+      <FormSection
+        n={2}
+        step={{ index: 1, current: step }}
         title="Volumen y precio"
         description="Stock en toneladas y un precio de referencia para negociar."
       >
@@ -384,11 +355,11 @@ function Fields({
             />
           </Field>
         )}
-      </Panel>
+      </FormSection>
 
-      <Panel
-        index={2}
-        current={step}
+      <FormSection
+        n={3}
+        step={{ index: 2, current: step }}
         title="Ubicación y logística"
         description="Dónde está el lote y cómo se retira. El flete se coordina fuera de SubMarket."
       >
@@ -450,11 +421,11 @@ function Fields({
             />
           </Field>
         </div>
-      </Panel>
+      </FormSection>
 
-      <Panel
-        index={3}
-        current={step}
+      <FormSection
+        n={4}
+        step={{ index: 3, current: step }}
         title="Ficha técnica y confirmación"
         description="Características opcionales y una vista previa de cómo se ve en el catálogo."
       >
@@ -515,7 +486,7 @@ function Fields({
             sellerName={sellerName}
           />
         </div>
-      </Panel>
+      </FormSection>
     </>
   );
 }

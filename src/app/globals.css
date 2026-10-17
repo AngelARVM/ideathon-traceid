@@ -7,7 +7,7 @@
     var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Paleta de codigo-ui: verde SubMarket (`brand-600` = #176B4D). */
+/* Paleta de SubMarket: verde (`brand-600` = #176B4D). */
 @theme {
   --color-brand-50: #effaf5;
   --color-brand-100: #d8f3e7;

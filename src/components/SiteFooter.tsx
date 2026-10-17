@@ -12,7 +12,7 @@ const LOCALITIES: Record<Province, string> = {
   chaco: "Resistencia, Pcia. Roque Sáenz Peña, Charata",
 };
 
-/** Footer global al estilo de codigo-ui, sin datos de contacto (D1). */
+/** Footer global, sin datos de contacto (D1). */
 export function SiteFooter() {
   return (
     <footer className="border-t border-gray-800 bg-gray-900 text-gray-300">

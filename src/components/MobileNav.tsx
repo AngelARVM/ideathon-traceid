@@ -2,19 +2,24 @@
 
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 
 export type NavItem = { href: string; label: string };
 
-/** Drawer de navegación para mobile (el `Drawer` de codigo-ui), con los mismos enlaces del header. */
+/**
+ * Drawer de navegación para mobile, con los mismos enlaces del header. `proposalsBadge` es el
+ * contador de pendientes que renderiza el servidor: se muestra en el botón y junto a "Propuestas".
+ */
 export function MobileNav({
   items,
   publish,
+  proposalsBadge,
 }: {
   items: NavItem[];
   publish: NavItem;
+  proposalsBadge?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -26,9 +31,12 @@ export function MobileNav({
         onClick={() => setOpen(true)}
         aria-label="Abrir menú"
         aria-expanded={open}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 lg:hidden"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 lg:hidden"
       >
         <Menu className="h-5 w-5" aria-hidden />
+        {proposalsBadge && (
+          <span className="absolute -top-0.5 -right-0.5">{proposalsBadge}</span>
+        )}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -66,6 +74,7 @@ export function MobileNav({
                 onNavigate={close}
               >
                 {item.label}
+                {item.href === "/proposals" && proposalsBadge}
               </NavLink>
             ))}
             <Link

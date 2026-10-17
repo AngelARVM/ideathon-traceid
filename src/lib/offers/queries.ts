@@ -8,7 +8,9 @@ import {
   Category,
   type OfferStatus,
   Presentation,
+  Province,
 } from "@/generated/prisma/enums";
+import { parsePrice, parseTons } from "@/lib/decimal";
 import { distanceKm } from "@/lib/geo";
 import type { OfferFormValues } from "@/lib/offers/schema";
 import type { PersonaWithLocality } from "@/lib/persona";
@@ -22,7 +24,25 @@ export type CatalogFilters = {
   maxHumidity?: number;
   minKcal?: number;
   presentation?: Presentation;
+  q?: string;
+  province?: Province;
+  /** Decimal normalizado (`parsePrice`). */
+  maxPrice?: string;
+  /** Decimal normalizado (`parseTons`). */
+  minStock?: string;
+  weighbridge?: 1;
+  sort?: CatalogSort;
 };
+
+export const CATALOG_SORTS = [
+  "distance",
+  "price_asc",
+  "price_desc",
+  "recent",
+  "stock_desc",
+] as const;
+
+export type CatalogSort = (typeof CATALOG_SORTS)[number];
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -63,6 +83,26 @@ export function parseCatalogFilters(params: SearchParams): CatalogFilters {
   const presentation = first(params.presentation);
   if (isIn(Presentation, presentation)) filters.presentation = presentation;
 
+  const q = first(params.q);
+  if (q && q.length >= 2 && q.length <= 60) filters.q = q;
+
+  const province = first(params.province);
+  if (isIn(Province, province)) filters.province = province;
+
+  const maxPrice = first(params.maxPrice);
+  const price = maxPrice ? parsePrice(maxPrice) : undefined;
+  if (price?.ok) filters.maxPrice = price.value;
+
+  const minStock = first(params.minStock);
+  const stock = minStock ? parseTons(minStock) : undefined;
+  if (stock?.ok) filters.minStock = stock.value;
+
+  if (first(params.weighbridge) === "1") filters.weighbridge = 1;
+
+  // `distance` es el orden por defecto: no hace falta guardarlo ni mostrarlo en la URL.
+  const sort = CATALOG_SORTS.find((s) => s === first(params.sort));
+  if (sort && sort !== "distance") filters.sort = sort;
+
   return filters;
 }
 
@@ -95,9 +135,32 @@ function toCardData(offer: OfferWithCard): OfferCardData {
   };
 }
 
+type SortableItem = { offer: OfferWithCard; distanceKm: number };
+
+/** Por precio: las ofertas sin precio van después de las que lo tienen, en los dos sentidos. */
+const byPrice =
+  (dir: 1 | -1) =>
+  (a: SortableItem, b: SortableItem): number => {
+    const pa = a.offer.pricePerTon;
+    const pb = b.offer.pricePerTon;
+    if (!pa || !pb) return Number(!pa) - Number(!pb);
+    return dir * pa.comparedTo(pb);
+  };
+
+const SORTERS: Record<
+  CatalogSort,
+  (a: SortableItem, b: SortableItem) => number
+> = {
+  distance: (a, b) => a.distanceKm - b.distanceKm,
+  price_asc: byPrice(1),
+  price_desc: byPrice(-1),
+  recent: (a, b) => b.offer.createdAt.getTime() - a.offer.createdAt.getTime(),
+  stock_desc: (a, b) => b.offer.quantityTons.comparedTo(a.offer.quantityTons),
+};
+
 export type CatalogItem = { offer: OfferCardData; distanceKm: number };
 
-/** Ofertas disponibles y estimadas, filtradas y ordenadas por distancia (§9.2). */
+/** Ofertas disponibles y estimadas, filtradas y ordenadas según `sort` (§9.2). */
 export async function listCatalog(
   filters: CatalogFilters,
   persona: PersonaWithLocality,
@@ -122,6 +185,19 @@ export async function listCatalog(
           : undefined,
       calorificKcalKg:
         filters.minKcal !== undefined ? { gte: filters.minKcal } : undefined,
+      // Igual que humedad: con `lte`, las ofertas sin precio quedan afuera solo si se filtra.
+      pricePerTon:
+        filters.maxPrice !== undefined ? { lte: filters.maxPrice } : undefined,
+      quantityTons:
+        filters.minStock !== undefined ? { gte: filters.minStock } : undefined,
+      hasWeighbridge: filters.weighbridge ? true : undefined,
+      locality: filters.province ? { province: filters.province } : undefined,
+      OR: filters.q
+        ? [
+            { title: { contains: filters.q, mode: "insensitive" } },
+            { description: { contains: filters.q, mode: "insensitive" } },
+          ]
+        : undefined,
     },
     include: cardInclude,
   });
@@ -136,10 +212,13 @@ export async function listCatalog(
       (i) => filters.radius === undefined || i.distanceKm <= filters.radius,
     );
 
-  // Agotadas al final; después por distancia y, a igual distancia, las más recientes.
+  // Agotadas siempre al final; después el criterio elegido y, como desempate, distancia y
+  // las más recientes.
+  const byCriterion = SORTERS[filters.sort ?? "distance"];
   items.sort(
     (a, b) =>
       Number(a.soldOut) - Number(b.soldOut) ||
+      byCriterion(a, b) ||
       a.distanceKm - b.distanceKm ||
       b.offer.createdAt.getTime() - a.offer.createdAt.getTime(),
   );

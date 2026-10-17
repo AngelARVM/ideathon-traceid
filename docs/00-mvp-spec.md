@@ -359,7 +359,7 @@ Se mide desde la localidad de la persona hasta la localidad de la oferta o la de
 
 ### 9.2 Filtros del catálogo (`/offers`)
 
-Los filtros van como query params en español, todos opcionales, y el formulario es GET:
+Los filtros van como query params en inglés (D17), todos opcionales, y el formulario es GET. Un valor inválido se ignora:
 
 | Param | Valores | Efecto |
 |---|---|---|
@@ -369,9 +369,16 @@ Los filtros van como query params en español, todos opcionales, y el formulario
 | `maxHumidity` | número | `humidityPct ≤ valor`. Las ofertas sin dato se excluyen solo si se usa el filtro. |
 | `minKcal` | entero | `calorificKcalKg ≥ valor`, con la misma regla para los nulos |
 | `presentation` | un `Presentation` | Igualdad |
+| `q` | texto, 2–60 caracteres | `title` o `description` contiene el texto, sin distinguir mayúsculas |
+| `province` | un `Province` | `locality.province` igual al valor |
+| `maxPrice` | decimal > 0 (`parsePrice`) | `pricePerTon ≤ valor`. Las ofertas sin precio se excluyen solo si se usa el filtro. |
+| `minStock` | decimal > 0 (`parseTons`) | `quantityTons ≥ valor` |
+| `weighbridge` | `1` | `hasWeighbridge = true` |
+| `sort` | `distance` (por defecto), `price_asc`, `price_desc`, `recent`, `stock_desc` | Criterio de orden; ver abajo. |
 
-- Se excluyen siempre las ofertas `withdrawn`. Las ofertas agotadas se muestran al final, marcadas.
-- Orden: por distancia ascendente y, a igual distancia, las más recientes primero.
+- Se excluyen siempre las ofertas `withdrawn`. Las ofertas agotadas se muestran al final, marcadas, con cualquier orden.
+- Orden por defecto: por distancia ascendente y, a igual distancia, las más recientes primero. Con otro `sort`, ese criterio va primero y la distancia y la antigüedad quedan como desempate.
+- Con orden por precio, en los dos sentidos, las ofertas sin precio van después de las que lo tienen.
 
 ### 9.3 Ofertas compatibles con una demanda
 
@@ -468,7 +475,7 @@ Son las únicas superficies que un hito consume de otro. Cada una se fija en M0 
 | `src/lib/labels.ts` | `CATEGORY_LABEL`, `OFFER_STATUS_LABEL`, `PRESENTATION_LABEL`, `FREIGHT_LABEL`, `PROPOSAL_STATUS_LABEL`, `PROVINCE_LABEL`, en español |
 | `src/lib/decimal.ts` | `parseTons(s)` y `parsePrice(s)`: aceptan "1.234,5" o "1234.5", validan > 0 y la escala, y devuelven `string` normalizado o un error. Los usan los schemas zod de M1, M2 y M3. |
 | `src/lib/action-result.ts` | `type ActionResult<T = void> = { ok: true; data?: T } \| { ok: false; error: string; fieldErrors?: Record<string, string> }` |
-| `src/components/OfferCard.tsx` | `<OfferCard offer={OfferCardData} distanceKm?={number} />`: tarjeta estilo codigo-ui, con la imagen de la categoría, que enlaza a `/offers/[id]`. `OfferCardData` se exporta desde el mismo archivo e incluye `id, title, category, status, estimatedDate, quantityTons (string), pricePerTon (string \| null), humidityPct, calorificKcalKg, presentation, hasWeighbridge, locality {name, province}, seller {name}`. |
+| `src/components/OfferCard.tsx` | `<OfferCard offer={OfferCardData} distanceKm?={number} />`: tarjeta con la imagen de la categoría, que enlaza a `/offers/[id]`. `OfferCardData` se exporta desde el mismo archivo e incluye `id, title, category, status, estimatedDate, quantityTons (string), pricePerTon (string \| null), humidityPct, calorificKcalKg, presentation, hasWeighbridge, locality {name, province}, seller {name}`. |
 | `src/components/StatusBadge.tsx` | `<OfferStatusBadge status quantityTons />` (con "Agotada") y `<ProposalStatusBadge status />` |
 | `src/components/ui/*` | `Button`, `LinkButton`, `Field`, `Input`, `Select`, `Textarea`, `FormError`, `PageHeader`, `EmptyState`: primitivas con Tailwind. M6.0 agrega `Card`, `Tag` (con `removeHref` para filtros activos), `Stat` (KPI), `Tabs` (enlaces con `?tab=`), `Steps` (indicador de wizard), `Dialog` (confirmación con `<dialog>` nativo, Client Component) y `Descriptions` (lista de etiqueta y valor). |
 | `src/lib/category-media.ts` | `CATEGORY_IMAGE: Record<Category, { src, alt }>`: imagen local por categoría (M6, F5). `OfferCard` la usa como portada. |
@@ -482,6 +489,8 @@ M2 enlaza a `/offers/new?category=<Category>&quantity=<tons>&title=<string>&dema
 ### 12.3 Enlace a proponer
 
 M1 renderiza en `/offers/[id]` un `LinkButton` a `/offers/[id]/propose` si se cumplen todas estas condiciones: la persona es buyer, el estado no es `withdrawn` y `quantityTons > 0`. M3 es dueño de esa ruta y repite todas las validaciones del lado del servidor.
+
+La calculadora de carga de `/offers/[id]` (M7) enlaza a `/offers/[id]/propose?quantity=<Tn>`. La página de proponer lee `quantity` con `parseTons` y la usa como valor inicial de la cantidad; si no es válida, la ignora.
 
 ### 12.4 Consultas de lectura cruzadas
 

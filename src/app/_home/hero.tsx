@@ -11,7 +11,7 @@ export type HeroHighlight = {
   href?: string;
 };
 
-/** Hero de codigo-ui: texto a la izquierda; foto grande con una tarjeta flotante a la derecha. */
+/** Hero de la home: texto a la izquierda; foto grande con una tarjeta flotante a la derecha. */
 export function Hero({
   title,
   subtitle,

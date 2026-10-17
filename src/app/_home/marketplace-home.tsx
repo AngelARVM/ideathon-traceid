@@ -74,6 +74,18 @@ export function MarketplaceHome({
           action="/offers"
           className="flex max-w-xl flex-col gap-2 rounded-2xl border border-gray-200/80 bg-white p-2 shadow-xs sm:flex-row"
         >
+          <label htmlFor="home-q" className="sr-only">
+            Buscar
+          </label>
+          <input
+            id="home-q"
+            name="q"
+            type="search"
+            minLength={2}
+            maxLength={60}
+            placeholder="¿Qué material buscás?"
+            className="h-12 min-w-0 flex-1 rounded-xl border-0 bg-transparent px-3 text-sm font-medium text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600/20"
+          />
           <label htmlFor="home-category" className="sr-only">
             Categoría
           </label>

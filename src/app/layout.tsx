@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
-// Inter para el texto y Plus Jakarta Sans para los títulos, como codigo-ui.
+// Inter para el texto y Plus Jakarta Sans para los títulos.
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],

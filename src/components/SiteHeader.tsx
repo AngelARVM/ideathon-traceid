@@ -7,7 +7,8 @@ import { NavLink } from "@/components/NavLink";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { LinkButton } from "@/components/ui/Button";
 import type { Role } from "@/generated/prisma/enums";
-import { getPersona } from "@/lib/persona";
+import { countPendingActions } from "@/lib/dashboard/queries";
+import { getPersona, type PersonaWithLocality } from "@/lib/persona";
 
 // Navegación por rol (docs/00-mvp-spec.md §10).
 const NAV: Record<Role, NavItem[]> = {
@@ -32,7 +33,7 @@ const PUBLISH: Record<Role, NavItem> = {
   buyer: { href: "/demands/new", label: "Publicar demanda" },
 };
 
-/** Header global al estilo de `Navbar` de codigo-ui. La persona se lee por request, en `<Suspense>`. */
+/** Header global. La persona se lee por request, en `<Suspense>`. */
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-gray-100 bg-white shadow-2xs">
@@ -63,13 +64,18 @@ async function PersonaNav() {
   }
   const items = NAV[persona.role];
   const publish = PUBLISH[persona.role];
+  const badge = (
+    <Suspense fallback={null}>
+      <PendingBadge persona={persona} />
+    </Suspense>
+  );
   return (
     <div className="flex min-w-0 items-center gap-2 lg:gap-5">
-      {/* TODO(M7): header-badge — contador de propuestas que esperan a la persona, junto a "Propuestas". */}
       <nav aria-label="Principal" className="hidden items-center gap-5 lg:flex">
         {items.map((item) => (
           <NavLink key={item.href} href={item.href}>
             {item.label}
+            {item.href === "/proposals" && badge}
           </NavLink>
         ))}
       </nav>
@@ -80,7 +86,26 @@ async function PersonaNav() {
         </LinkButton>
       </span>
       <PersonaSwitcher persona={persona} />
-      <MobileNav items={items} publish={publish} />
+      <MobileNav items={items} publish={publish} proposalsBadge={badge} />
     </div>
+  );
+}
+
+/** Propuestas que esperan una acción de la persona (M7 §2.4). Sin pendientes, no se muestra. */
+async function PendingBadge({ persona }: { persona: PersonaWithLocality }) {
+  const count = await countPendingActions(persona);
+  if (count === 0) return null;
+  const label =
+    persona.role === "seller"
+      ? `${count} para responder`
+      : `${count} para confirmar`;
+  return (
+    <span
+      title={label}
+      className="inline-flex min-w-5 justify-center rounded-full bg-amber-500 px-1.5 font-mono-num text-[11px] font-bold leading-5 text-white"
+    >
+      <span aria-hidden>{count}</span>
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }

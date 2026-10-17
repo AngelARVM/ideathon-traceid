@@ -3,15 +3,18 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { RADIUS_OPTIONS } from "@/lib/geo";
-import { CATEGORY_LABEL, PRESENTATION_LABEL } from "@/lib/labels";
+import {
+  CATEGORY_LABEL,
+  PRESENTATION_LABEL,
+  PROVINCE_LABEL,
+} from "@/lib/labels";
 import type { CatalogFilters as Filters } from "@/lib/offers/queries";
-
-// TODO(M7): catalog-filters — búsqueda de texto, provincia, precio máximo, stock mínimo, báscula y orden.
 
 /**
  * Filtros del catálogo en columna: formulario GET con los query params de §9.2. El modo
- * (`availability`) lo elige el selector de arriba y viaja como campo oculto. `idPrefix` evita
- * ids repetidos entre la barra lateral y el drawer de mobile.
+ * (`availability`), la búsqueda (`q`) y el orden (`sort`) se eligen en la barra de arriba y
+ * viajan como campos ocultos. `idPrefix` evita ids repetidos entre la barra lateral y el drawer
+ * de mobile.
  */
 export function CatalogFilters({
   filters,
@@ -31,6 +34,8 @@ export function CatalogFilters({
       {filters.availability && (
         <input type="hidden" name="availability" value={filters.availability} />
       )}
+      {filters.q && <input type="hidden" name="q" value={filters.q} />}
+      {filters.sort && <input type="hidden" name="sort" value={filters.sort} />}
       <FilterField id={id("category")} label="Categoría">
         <Select
           id={id("category")}
@@ -69,6 +74,42 @@ export function CatalogFilters({
         </div>
       </fieldset>
 
+      <FilterField id={id("province")} label="Provincia">
+        <Select
+          id={id("province")}
+          name="province"
+          defaultValue={filters.province ?? ""}
+        >
+          <option value="">Todas</option>
+          {Object.entries(PROVINCE_LABEL).map(([value, text]) => (
+            <option key={value} value={value}>
+              {text}
+            </option>
+          ))}
+        </Select>
+      </FilterField>
+
+      <div className="grid grid-cols-2 gap-3">
+        <FilterField id={id("price")} label="Precio máx. $/Tn">
+          <Input
+            id={id("price")}
+            name="maxPrice"
+            inputMode="decimal"
+            defaultValue={filters.maxPrice ?? ""}
+            placeholder="Ej. 30000"
+          />
+        </FilterField>
+        <FilterField id={id("stock")} label="Stock mín. Tn">
+          <Input
+            id={id("stock")}
+            name="minStock"
+            inputMode="decimal"
+            defaultValue={filters.minStock ?? ""}
+            placeholder="Ej. 100"
+          />
+        </FilterField>
+      </div>
+
       <FilterField id={id("presentation")} label="Presentación">
         <Select
           id={id("presentation")}
@@ -104,6 +145,17 @@ export function CatalogFilters({
           />
         </FilterField>
       </div>
+
+      <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-gray-800">
+        <input
+          type="checkbox"
+          name="weighbridge"
+          value="1"
+          defaultChecked={filters.weighbridge === 1}
+          className="h-4 w-4 rounded border-gray-300 accent-brand-600"
+        />
+        Con báscula en planta
+      </label>
 
       <Button type="submit" size="sm" className="w-full">
         Aplicar filtros

@@ -25,7 +25,7 @@ type StyleProps = { variant?: Variant; size?: Size };
 const classes = (variant: Variant, size: Size, className = "") =>
   `${base} ${variants[variant]} ${sizes[size]} ${className}`;
 
-/** Botón con las variantes de codigo-ui: primario verde, secundario con borde, fantasma y peligro. */
+/** Botón con sus variantes: primario verde, secundario con borde, fantasma y peligro. */
 export function Button({
   variant = "primary",
   size = "md",

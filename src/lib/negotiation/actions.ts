@@ -48,6 +48,8 @@ function revalidateProposal(id: string, offerId: string) {
   revalidatePath("/proposals");
   revalidatePath(`/proposals/${id}`);
   revalidatePath(`/offers/${offerId}`);
+  // El contador de acciones pendientes del header vive en el layout (M7 §2.4).
+  revalidatePath("/", "layout");
 }
 
 // ── Comprador: proponer ──────────────────────────────────────────────────────

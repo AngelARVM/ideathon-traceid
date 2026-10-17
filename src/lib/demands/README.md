@@ -8,7 +8,7 @@ Paths follow D17 / ADR-0004: English routes and query parameters, Spanish copy.
 - `/demands/new`
 - `/demands/[id]`
 - `/demands/[id]/edit`
-- `/my-demands?showWithdrawn=true`
+- `/my-demands?tab=withdrawn`
 
 Domain enum values and fixture IDs stay unchanged to preserve the shared database contract.
 

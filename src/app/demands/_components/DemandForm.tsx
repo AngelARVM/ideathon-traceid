@@ -1,9 +1,10 @@
 "use client";
 
-import { type ReactNode, useActionState } from "react";
+import { useActionState } from "react";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { FormError } from "@/components/ui/FormError";
+import { FormSection } from "@/components/ui/FormSection";
 import type { Province } from "@/generated/prisma/enums";
 import type { ActionResult } from "@/lib/action-result";
 import { createDemand, updateDemand } from "@/lib/demands/actions";
@@ -46,7 +47,7 @@ export function DemandForm({ id, initialValues, localities, today }: Props) {
       {id && <input type="hidden" name="id" value={id} />}
       <fieldset disabled={pending} className="space-y-6">
         <legend className="sr-only">Datos de la demanda</legend>
-        <Section
+        <FormSection
           n={1}
           title="Identificación"
           description="Qué subproducto buscás y para qué lo usarías."
@@ -88,9 +89,9 @@ export function DemandForm({ id, initialValues, localities, today }: Props) {
               />
             </Field>
           </div>
-        </Section>
+        </FormSection>
 
-        <Section
+        <FormSection
           n={2}
           title="Volumen y precio"
           description="Cuánto necesitás, hasta qué precio y para cuándo."
@@ -130,9 +131,9 @@ export function DemandForm({ id, initialValues, localities, today }: Props) {
               <Input {...control("neededBy")} type="date" min={today} />
             </Field>
           </div>
-        </Section>
+        </FormSection>
 
-        <Section
+        <FormSection
           n={3}
           title="Ubicación"
           description="Desde dónde y hasta qué distancia buscar ofertas."
@@ -164,7 +165,7 @@ export function DemandForm({ id, initialValues, localities, today }: Props) {
               ))}
             </Select>
           </Field>
-        </Section>
+        </FormSection>
       </fieldset>
       <div className="mt-5" aria-live="polite">
         <FormError message={result.ok ? null : result.error} />
@@ -178,30 +179,5 @@ export function DemandForm({ id, initialValues, localities, today }: Props) {
         </Button>
       </div>
     </form>
-  );
-}
-
-/** Sección del formulario, con el mismo aspecto que los pasos del wizard de ofertas. */
-function Section({
-  n,
-  title,
-  description,
-  children,
-}: {
-  n: number;
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-gray-200 bg-white shadow-card">
-      <div className="border-b border-gray-100 px-5 py-4 sm:px-6">
-        <h2 className="text-lg font-bold text-gray-900">
-          {n}. {title}
-        </h2>
-        <p className="mt-0.5 text-sm text-gray-500">{description}</p>
-      </div>
-      <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">{children}</div>
-    </section>
   );
 }

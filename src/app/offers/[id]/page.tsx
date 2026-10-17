@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { Descriptions } from "@/components/ui/Descriptions";
 import { Dialog } from "@/components/ui/Dialog";
 import { CATEGORY_IMAGE } from "@/lib/category-media";
+import { getSellerStats } from "@/lib/dashboard/queries";
 import { formatArs, formatDate, formatKm, formatTons } from "@/lib/format";
 import {
   CATEGORY_LABEL,
@@ -255,7 +256,13 @@ async function OfferDetail({
                 )}
               </div>
             </div>
-            {/* TODO(M7): seller-stats — antigüedad, ofertas activas, acuerdos y Tn acordadas (getSellerStats). */}
+            <Suspense
+              fallback={
+                <div className="mt-4 h-24 animate-pulse rounded-lg bg-gray-100" />
+              }
+            >
+              <SellerStats sellerId={offer.seller.id} />
+            </Suspense>
           </Card>
         </div>
 
@@ -310,6 +317,39 @@ async function OfferDetail({
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Datos descriptivos del vendedor en SubMarket: sin rating ni sellos de confianza (M7 §2.2). */
+async function SellerStats({ sellerId }: { sellerId: string }) {
+  const stats = await getSellerStats(sellerId);
+  const memberSince = stats.memberSince.toLocaleDateString("es-AR", {
+    month: "long",
+    year: "numeric",
+  });
+  return (
+    <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+      <dl className="grid grid-cols-3 gap-2 text-center">
+        {[
+          { label: "Ofertas activas", value: String(stats.activeOffers) },
+          { label: "Acuerdos", value: String(stats.agreements) },
+          { label: "Volumen acordado", value: formatTons(stats.tonsAgreed) },
+        ].map((s) => (
+          <div key={s.label} className="rounded-lg bg-slate-50 px-2 py-2">
+            <dt className="text-[11px] text-gray-500">{s.label}</dt>
+            <dd className="font-mono-num text-sm font-bold text-gray-900">
+              {s.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-xs text-gray-500">
+        {stats.agreements === 1
+          ? "1 acuerdo registrado"
+          : `${stats.agreements} acuerdos registrados`}{" "}
+        en SubMarket · En SubMarket desde {memberSince}.
+      </p>
     </div>
   );
 }

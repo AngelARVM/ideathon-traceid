@@ -8,6 +8,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Producto vigente: SubMarket
+
+El producto es **SubMarket**, un marketplace regional (NEA) de subproductos agroindustriales. La fuente normativa es `docs/00-mvp-spec.md` (contrato común: modelo, estados, acciones, rutas y guion de demo); el reparto del trabajo está en `docs/01-orchestration.md` y cada hito tiene su spec en `docs/specs/`. Antes de modificar funcionalidades, leer el contrato y el spec del hito; no tocar archivos fuera de los que ese spec permite. `pivot/` (brief y apéndice de transición) y `docs/legacy/` (TraceID) son antecedentes históricos, no requisitos.
+
 ## Agent skills
 
 ### Issue tracker

@@ -1,6 +1,5 @@
 @import "tailwindcss";
-/* Solo tema claro (M6, F4): `dark:` queda inerte porque nada agrega la clase `.dark`. */
-@custom-variant dark (&:where(.dark, .dark *));
+/* Solo tema claro (M6, F4). */
 
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -21,19 +20,6 @@
   --color-brand-800: #114735;
   --color-brand-900: #0e3a2c;
   --color-brand-950: #072018;
-
-  /* `campo` era la paleta anterior: queda como alias de `brand`. */
-  --color-campo-50: var(--color-brand-50);
-  --color-campo-100: var(--color-brand-100);
-  --color-campo-200: var(--color-brand-200);
-  --color-campo-300: var(--color-brand-300);
-  --color-campo-400: var(--color-brand-400);
-  --color-campo-500: var(--color-brand-500);
-  --color-campo-600: var(--color-brand-600);
-  --color-campo-700: var(--color-brand-700);
-  --color-campo-800: var(--color-brand-800);
-  --color-campo-900: var(--color-brand-900);
-  --color-campo-950: var(--color-brand-950);
 
   --color-tierra-500: #b45309;
   --color-tierra-600: #92400e;

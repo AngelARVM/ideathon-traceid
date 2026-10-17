@@ -25,8 +25,11 @@ Cada pista de M6 agrega aquí sus `TODO(M7)` con su clave, el archivo y una lín
 | `catalog-filters` | `/offers` | Búsqueda de texto, provincia, precio máximo, stock mínimo, báscula y orden (§2.1). |
 | `seller-stats` | `/offers/[id]`, tarjeta del vendedor | Estadísticas reales del vendedor (§2.2). |
 | `seller-kpis` | `/my-offers` | KPIs que necesitan acuerdos y propuestas (§2.3). |
-| `seller-agreements-tab` | `/my-offers?tab=acuerdos` | Pestaña de acuerdos del vendedor (§2.3). |
+| `seller-agreements-tab` | `/my-offers?tab=agreements` | Pestaña de acuerdos del vendedor (§2.3). |
 | `header-badge` | `SiteHeader` | Contador de propuestas que esperan una acción de la persona (§2.4). |
+| `demands-readme` | `src/lib/demands/README.md` | Documenta `/my-demands?showWithdrawn=true`; M6.3 lo reemplazó por `?tab=withdrawn`. |
+
+**Query params (D17).** M6 usó nombres en inglés para los params nuevos: `/proposals?status=`, `/my-offers?tab=inventory\|estimated\|withdrawn` y `/my-demands?tab=withdrawn`. Los params de §2.1 y §2.5 siguen la misma regla: `q`, `province`, `maxPrice`, `minStock`, `weighbridge=1`, `sort` (`distance`, `price_asc`, `price_desc`, `recent`, `stock_desc`) y `quantity`.
 
 ## 2. Tareas
 

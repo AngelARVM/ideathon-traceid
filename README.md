@@ -27,7 +27,7 @@ make db                      # Postgres en Docker, migraciones y seed de demo
 make up                      # app en el primer puerto libre desde 3000
 ```
 
-Otros comandos: `make down` (para Postgres), `make reset` (borra la base y vuelve a sembrar), `npm run typecheck`, `npm run lint`, `npm run build`.
+Otros comandos: `make down` (para Postgres), `make reset` (borra la base y vuelve a sembrar), `npm test` (los tests con base corren solo si `DATABASE_URL` apunta a localhost), `npm run typecheck`, `npm run lint`, `npm run build`.
 
 ## Variables de entorno
 

@@ -10,13 +10,8 @@ import { parsePrice, parseTons } from "@/lib/decimal";
 import { formatTons } from "@/lib/format";
 import { newId } from "@/lib/ids";
 import { requirePersona } from "@/lib/persona";
-import {
-  confirmBlockReason,
-  effectiveTerms,
-  exceeds,
-  OPEN_PROPOSAL_STATUSES,
-  totalAmount,
-} from "./terms";
+import { ConfirmError, confirmProposalTx } from "./confirm";
+import { effectiveTerms, exceeds, OPEN_PROPOSAL_STATUSES } from "./terms";
 
 // Server actions de la negociación (docs/00-mvp-spec.md §8.2, §8.3). Todas se usan con
 // `useActionState`: reciben `(prevState, formData)` y el id llega ligado con `.bind`. Los ids de
@@ -301,9 +296,6 @@ export async function rejectCounter(
   return { ok: true };
 }
 
-/** Error esperado dentro de la transacción: su mensaje se muestra tal cual. */
-class ConfirmError extends Error {}
-
 /**
  * Confirmación atómica (§8.3). Sirve para "Confirmar acuerdo" (desde `accepted`) y para
  * "Aceptar contraoferta" (desde `countered`). Cualquier throw revierte el cambio de estado.
@@ -327,73 +319,9 @@ export async function confirmProposal(
 
   let result: { agreementId: string; offerId: string };
   try {
-    result = await db.$transaction(async (tx) => {
-      // 2. Cambio de estado condicionado: cubre doble confirmación, reintentos y acceso ajeno.
-      const claimed = await tx.proposal.updateMany({
-        where: {
-          id,
-          buyerId: persona.id,
-          status: { in: ["accepted", "countered"] },
-        },
-        data: { status: "confirmed" },
-      });
-      if (claimed.count === 0) {
-        throw new ConfirmError("La propuesta ya no se puede confirmar.");
-      }
-
-      // 3. Términos efectivos.
-      const p = await tx.proposal.findUniqueOrThrow({
-        where: { id },
-        include: { offer: { include: { locality: true } } },
-      });
-      const terms = effectiveTerms(p);
-
-      // 4. Descuento de stock condicionado.
-      const debited = await tx.offer.updateMany({
-        where: {
-          id: p.offerId,
-          status: "available",
-          quantityTons: { gte: terms.quantityTons },
-        },
-        data: { quantityTons: { decrement: terms.quantityTons } },
-      });
-      if (debited.count === 0) {
-        const offer = await tx.offer.findUniqueOrThrow({
-          where: { id: p.offerId },
-        });
-        throw new ConfirmError(
-          confirmBlockReason(p, offer) ??
-            `Stock insuficiente: quedan ${formatTons(offer.quantityTons)}`,
-        );
-      }
-
-      // 5. Acuerdo con los términos finales y el snapshot de la oferta.
-      const { offer } = p;
-      const agreement = await tx.agreement.create({
-        data: {
-          id: newId(),
-          proposalId: p.id,
-          offerId: offer.id,
-          sellerId: offer.sellerId,
-          buyerId: p.buyerId,
-          quantityTons: terms.quantityTons,
-          pricePerTon: terms.pricePerTon,
-          totalAmount: totalAmount(terms.quantityTons, terms.pricePerTon),
-          offerTitle: offer.title,
-          category: offer.category,
-          originLocality: offer.locality.name,
-          humidityPct: offer.humidityPct,
-          calorificKcalKg: offer.calorificKcalKg,
-          presentation: offer.presentation,
-          freight: offer.freight,
-          hasWeighbridge: offer.hasWeighbridge,
-          labAnalysis: offer.labAnalysis,
-          closingComment: comment.data,
-        },
-        select: { id: true },
-      });
-      return { agreementId: agreement.id, offerId: offer.id };
-    });
+    result = await db.$transaction((tx) =>
+      confirmProposalTx(tx, persona.id, id, comment.data),
+    );
   } catch (error) {
     if (error instanceof ConfirmError) {
       return { ok: false, error: error.message };

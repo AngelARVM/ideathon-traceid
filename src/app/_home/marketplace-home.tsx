@@ -87,7 +87,7 @@ export function MarketplaceHome({
           </h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="Categoría" htmlFor="home-category">
-              <Select id="home-category" name="categoria" defaultValue="">
+              <Select id="home-category" name="category" defaultValue="">
                 <option value="">Todas las categorías</option>
                 {data.categories.map(({ category }) => (
                   <option key={category} value={category}>
@@ -97,7 +97,7 @@ export function MarketplaceHome({
               </Select>
             </Field>
             <Field label="Radio desde tu localidad" htmlFor="home-radius">
-              <Select id="home-radius" name="radio" defaultValue="200">
+              <Select id="home-radius" name="radius" defaultValue="200">
                 {RADIUS_OPTIONS.map((radius) => (
                   <option key={radius ?? "all"} value={radius ?? ""}>
                     {radius === null
@@ -134,7 +134,7 @@ export function MarketplaceHome({
             return (
               <li key={category}>
                 <Link
-                  href={`/offers?categoria=${category}`}
+                  href={`/offers?category=${category}`}
                   className="group flex h-full min-h-40 flex-col rounded-2xl border border-stone-200 bg-white p-4 transition hover:border-campo-500 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-campo-500"
                 >
                   <div className="flex items-center justify-between text-campo-700 dark:text-campo-300">

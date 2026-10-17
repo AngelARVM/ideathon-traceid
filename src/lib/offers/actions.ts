@@ -36,9 +36,9 @@ async function requireSeller(): Promise<
 }
 
 function revalidateOffer(id: string) {
-  revalidatePath("/ofertas");
-  revalidatePath("/mis-ofertas");
-  revalidatePath(`/ofertas/${id}`);
+  revalidatePath("/offers");
+  revalidatePath("/my-offers");
+  revalidatePath(`/offers/${id}`);
 }
 
 /** Valida el formulario y la localidad (por defecto, la de la persona). */
@@ -88,7 +88,7 @@ export async function createOffer(
   });
 
   revalidateOffer(id);
-  redirect(`/ofertas/${id}`);
+  redirect(`/offers/${id}`);
 }
 
 export async function updateOffer(
@@ -110,7 +110,7 @@ export async function updateOffer(
   if (count === 0) return { ok: false, error: NOT_FOUND };
 
   revalidateOffer(id);
-  redirect(`/ofertas/${id}`);
+  redirect(`/offers/${id}`);
 }
 
 export async function withdrawOffer(id: string): Promise<ActionResult> {

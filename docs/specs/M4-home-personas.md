@@ -28,11 +28,11 @@ La home `/` es lo primero que ve el jurado. Tiene dos estados:
 
 1. **Hero:**
    - saludo "Hola, <nombre>" con el rol y la localidad;
-   - un formulario GET que dirige a `/ofertas`, con un select de categoría y un select de radio;
+   - un formulario GET que dirige a `/offers`, con un select de categoría y un select de radio;
    - un CTA según el rol: "Publicar oferta" (seller) o "Publicar demanda" (buyer).
-2. **Categorías:** una tarjeta por cada `Category` con su label, un ícono de `lucide-react` y la cantidad de ofertas activas (`available` o `estimated`) de esa categoría, consultada desde `_home/queries.ts`. Cada tarjeta enlaza a `/ofertas?categoria=<cat>`.
-3. **Lotes cerca tuyo:** las 4 ofertas activas más cercanas a la persona, con `OfferCard` y distancia, y el enlace "Ver todos" a `/ofertas`. Si hay alguna estimada en el radio de 200 km, se incluye al menos una para que la diferencia se vea.
-4. **Para un buyer, "Tus demandas":** sus demandas abiertas con el conteo de compatibles. Si no tiene, el CTA de publicar una. **Para un seller, "Demandas cerca tuyo":** las 3 demandas abiertas más cercanas, con enlace a `/demandas/<id>`.
+2. **Categorías:** una tarjeta por cada `Category` con su label, un ícono de `lucide-react` y la cantidad de ofertas activas (`available` o `estimated`) de esa categoría, consultada desde `_home/queries.ts`. Cada tarjeta enlaza a `/offers?category=<cat>`.
+3. **Lotes cerca tuyo:** las 4 ofertas activas más cercanas a la persona, con `OfferCard` y distancia, y el enlace "Ver todos" a `/offers`. Si hay alguna estimada en el radio de 200 km, se incluye al menos una para que la diferencia se vea.
+4. **Para un buyer, "Tus demandas":** sus demandas abiertas con el conteo de compatibles. Si no tiene, el CTA de publicar una. **Para un seller, "Demandas cerca tuyo":** las 3 demandas abiertas más cercanas, con enlace a `/demands/<id>`.
    - Para no depender de M2, las consultas son propias, en `_home/queries.ts`. El conteo de compatibles puede omitirse si complica.
 5. **Cómo funciona,** en 3 pasos (adaptados del PDF y sin promesas fuera de alcance):
    1. Publicá o buscá un subproducto cerca tuyo.
@@ -53,7 +53,7 @@ La home `/` es lo primero que ve el jurado. Tiene dos estados:
 
 ## Definición de terminado
 
-- [ ] En una ventana privada, `/` muestra las 6 personas. Un clic en Feedlot Resistencia vuelve a `/ofertas` (comportamiento de `selectPersona`) y, al entrar de nuevo a `/`, se ve la home personalizada.
+- [ ] En una ventana privada, `/` muestra las 6 personas. Un clic en Feedlot Resistencia vuelve a `/offers` (comportamiento de `selectPersona`) y, al entrar de nuevo a `/`, se ve la home personalizada.
 - [ ] Los conteos por categoría coinciden con el seed: cascarilla 2, chips 1, aserrín 1, pellets 0 y orujos 2.
 - [ ] Como Granja Avícola Bella Vista, "Lotes cerca tuyo" muestra primero las pulpas de Bella Vista (0 km).
 - [ ] La home se ve bien en mobile (375 px) y en desktop, con tema claro y oscuro.

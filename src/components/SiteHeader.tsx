@@ -12,24 +12,24 @@ import { getPersona } from "@/lib/persona";
 // Navegación por rol (docs/00-mvp-spec.md §10).
 const NAV: Record<Role, { href: string; label: string }[]> = {
   seller: [
-    { href: "/ofertas", label: "Explorar" },
-    { href: "/demandas", label: "Demandas" },
-    { href: "/mis-ofertas", label: "Mis ofertas" },
-    { href: "/propuestas", label: "Propuestas" },
-    { href: "/acuerdos", label: "Acuerdos" },
+    { href: "/offers", label: "Explorar" },
+    { href: "/demands", label: "Demandas" },
+    { href: "/my-offers", label: "Mis ofertas" },
+    { href: "/proposals", label: "Propuestas" },
+    { href: "/agreements", label: "Acuerdos" },
   ],
   buyer: [
-    { href: "/ofertas", label: "Explorar" },
-    { href: "/demandas", label: "Demandas" },
-    { href: "/mis-demandas", label: "Mis demandas" },
-    { href: "/propuestas", label: "Propuestas" },
-    { href: "/acuerdos", label: "Acuerdos" },
+    { href: "/offers", label: "Explorar" },
+    { href: "/demands", label: "Demandas" },
+    { href: "/my-demands", label: "Mis demandas" },
+    { href: "/proposals", label: "Propuestas" },
+    { href: "/agreements", label: "Acuerdos" },
   ],
 };
 
 const PUBLISH: Record<Role, { href: string; label: string }> = {
-  seller: { href: "/ofertas/nueva", label: "Publicar oferta" },
-  buyer: { href: "/demandas/nueva", label: "Publicar demanda" },
+  seller: { href: "/offers/new", label: "Publicar oferta" },
+  buyer: { href: "/demands/new", label: "Publicar demanda" },
 };
 
 export function SiteHeader() {

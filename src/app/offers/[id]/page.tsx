@@ -27,13 +27,11 @@ import { getOfferDetail } from "@/lib/offers/queries";
 import { requirePersona } from "@/lib/persona";
 import { OfferActionButton } from "../_components/OfferActionButton";
 
-export default function OfferDetailPage({
-  params,
-}: PageProps<"/ofertas/[id]">) {
+export default function OfferDetailPage({ params }: PageProps<"/offers/[id]">) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <Link
-        href="/ofertas"
+        href="/offers"
         className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-stone-600 hover:text-campo-700 dark:text-stone-400 dark:hover:text-campo-300"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
@@ -53,7 +51,7 @@ export default function OfferDetailPage({
 async function OfferDetail({
   params,
 }: {
-  params: PageProps<"/ofertas/[id]">["params"];
+  params: PageProps<"/offers/[id]">["params"];
 }) {
   const persona = await requirePersona();
   const { id } = await params;
@@ -200,7 +198,7 @@ async function OfferDetail({
 
       {canPropose && (
         <div>
-          <LinkButton href={`/ofertas/${offer.id}/proponer`}>
+          <LinkButton href={`/offers/${offer.id}/propose`}>
             Proponer compra
           </LinkButton>
         </div>
@@ -208,7 +206,7 @@ async function OfferDetail({
 
       {isOwner && !withdrawn && (
         <div className="flex flex-wrap items-start gap-2 border-t border-stone-200 pt-5 dark:border-stone-800">
-          <LinkButton href={`/ofertas/${offer.id}/editar`} variant="secondary">
+          <LinkButton href={`/offers/${offer.id}/edit`} variant="secondary">
             Editar
           </LinkButton>
           {estimated && (

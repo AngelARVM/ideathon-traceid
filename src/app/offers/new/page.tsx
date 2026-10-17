@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Publicar oferta" };
 
 export default function NewOfferPage({
   searchParams,
-}: PageProps<"/ofertas/nueva">) {
+}: PageProps<"/offers/new">) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <PageHeader
@@ -38,15 +38,15 @@ const param = (v: string | string[] | undefined) =>
 async function NewOffer({
   searchParams,
 }: {
-  searchParams: PageProps<"/ofertas/nueva">["searchParams"];
+  searchParams: PageProps<"/offers/new">["searchParams"];
 }) {
   const persona = await requirePersona();
   if (persona.role !== "seller") notFound();
 
   // Precarga desde una demanda (§12.2): son solo valores iniciales, la acción valida todo.
   const params = await searchParams;
-  const categoria = param(params.categoria);
-  const demandId = param(params.demanda);
+  const category = param(params.category);
+  const demandId = param(params.demand);
   const [localities, demand] = await Promise.all([
     listLocalities(),
     demandId ? getDemandTitle(demandId) : null,
@@ -60,7 +60,7 @@ async function NewOffer({
           <span>
             Publicando en respuesta a:{" "}
             <Link
-              href={`/demandas/${demand.id}`}
+              href={`/demands/${demand.id}`}
               className="font-semibold underline underline-offset-2"
             >
               {demand.title}
@@ -72,13 +72,13 @@ async function NewOffer({
         action={createOffer}
         localities={localities}
         submitLabel="Publicar oferta"
-        cancelHref="/mis-ofertas"
+        cancelHref="/my-offers"
         initialValues={{
-          title: param(params.titulo),
-          category: Object.values<string>(Category).includes(categoria)
-            ? categoria
+          title: param(params.title),
+          category: Object.values<string>(Category).includes(category)
+            ? category
             : "",
-          quantityTons: param(params.cantidad),
+          quantityTons: param(params.quantity),
           status: "available",
           localityId: persona.localityId,
           freight: "a_convenir",

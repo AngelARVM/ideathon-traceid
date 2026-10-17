@@ -12,18 +12,18 @@ export function CatalogFilters({ filters }: { filters: Filters }) {
     <Form
       // `key`: al navegar con otros filtros, los controles se vuelven a montar con sus valores.
       key={JSON.stringify(filters)}
-      action="/ofertas"
+      action="/offers"
       className="grid grid-cols-2 gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-3 lg:grid-cols-7 dark:border-stone-800 dark:bg-stone-900"
     >
       <FilterField
-        id="filter-categoria"
+        id="filter-category"
         label="Categoría"
         className="col-span-2 sm:col-span-1 lg:col-span-2"
       >
         <Select
-          id="filter-categoria"
-          name="categoria"
-          defaultValue={filters.categoria ?? ""}
+          id="filter-category"
+          name="category"
+          defaultValue={filters.category ?? ""}
         >
           <option value="">Todas</option>
           {Object.entries(CATEGORY_LABEL).map(([value, text]) => (
@@ -33,11 +33,11 @@ export function CatalogFilters({ filters }: { filters: Filters }) {
           ))}
         </Select>
       </FilterField>
-      <FilterField id="filter-radio" label="Radio">
+      <FilterField id="filter-radius" label="Radio">
         <Select
-          id="filter-radio"
-          name="radio"
-          defaultValue={filters.radio?.toString() ?? ""}
+          id="filter-radius"
+          name="radius"
+          defaultValue={filters.radius?.toString() ?? ""}
         >
           {RADIUS_OPTIONS.map((r) => (
             <option key={r ?? "all"} value={r ?? ""}>
@@ -46,22 +46,22 @@ export function CatalogFilters({ filters }: { filters: Filters }) {
           ))}
         </Select>
       </FilterField>
-      <FilterField id="filter-disponibilidad" label="Disponibilidad">
+      <FilterField id="filter-availability" label="Disponibilidad">
         <Select
-          id="filter-disponibilidad"
-          name="disponibilidad"
-          defaultValue={filters.disponibilidad ?? ""}
+          id="filter-availability"
+          name="availability"
+          defaultValue={filters.availability ?? ""}
         >
           <option value="">Todas</option>
-          <option value="disponible">Disponible</option>
-          <option value="estimada">Estimada</option>
+          <option value="available">Disponible</option>
+          <option value="estimated">Estimada</option>
         </Select>
       </FilterField>
-      <FilterField id="filter-presentacion" label="Presentación">
+      <FilterField id="filter-presentation" label="Presentación">
         <Select
-          id="filter-presentacion"
-          name="presentacion"
-          defaultValue={filters.presentacion ?? ""}
+          id="filter-presentation"
+          name="presentation"
+          defaultValue={filters.presentation ?? ""}
         >
           <option value="">Todas</option>
           {Object.entries(PRESENTATION_LABEL).map(([value, text]) => (
@@ -71,26 +71,26 @@ export function CatalogFilters({ filters }: { filters: Filters }) {
           ))}
         </Select>
       </FilterField>
-      <FilterField id="filter-humedad" label="Humedad máx. %">
+      <FilterField id="filter-humidity" label="Humedad máx. %">
         <Input
-          id="filter-humedad"
-          name="humedadMax"
+          id="filter-humidity"
+          name="maxHumidity"
           inputMode="decimal"
-          defaultValue={filters.humedadMax?.toString() ?? ""}
+          defaultValue={filters.maxHumidity?.toString() ?? ""}
           placeholder="Ej. 12"
         />
       </FilterField>
       <FilterField id="filter-kcal" label="kcal/kg mín.">
         <Input
           id="filter-kcal"
-          name="kcalMin"
+          name="minKcal"
           inputMode="numeric"
-          defaultValue={filters.kcalMin?.toString() ?? ""}
+          defaultValue={filters.minKcal?.toString() ?? ""}
           placeholder="Ej. 3500"
         />
       </FilterField>
       <div className="col-span-2 flex gap-2 sm:col-span-3 lg:col-span-7 lg:justify-end">
-        <LinkButton href="/ofertas" variant="ghost" size="sm">
+        <LinkButton href="/offers" variant="ghost" size="sm">
           Limpiar
         </LinkButton>
         <Button type="submit" size="sm">

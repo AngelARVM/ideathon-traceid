@@ -19,11 +19,11 @@
 | Hito | Spec | Depende de | Prioridad para la demo | Estimado |
 |---|---|---|---|---|
 | M0 | [M0-bootstrap](./specs/M0-bootstrap.md) | — | Bloqueante | 40–50 min |
-| M1 | [M1-ofertas](./specs/M1-ofertas.md) | M0 | **Crítica**: sin catálogo y detalle no hay entrada a la negociación | 60–75 min |
-| M3 | [M3-negociacion-acuerdos](./specs/M3-negociacion-acuerdos.md) | M0. Integra con M1 solo por un enlace. | **Crítica**: es el corazón de la demo | 75–90 min |
-| M2 | [M2-demandas](./specs/M2-demandas.md) | M0 | Alta: es la diferenciación "compatibles" | 45–60 min |
+| M1 | [M1-offers](./specs/M1-offers.md) | M0 | **Crítica**: sin catálogo y detalle no hay entrada a la negociación | 60–75 min |
+| M3 | [M3-negotiation-agreements](./specs/M3-negotiation-agreements.md) | M0. Integra con M1 solo por un enlace. | **Crítica**: es el corazón de la demo | 75–90 min |
+| M2 | [M2-demands](./specs/M2-demands.md) | M0 | Alta: es la diferenciación "compatibles" | 45–60 min |
 | M4 | [M4-home-personas](./specs/M4-home-personas.md) | M0 | Media: M0 ya deja una home funcional mínima | 40–50 min |
-| M5 | [M5-integracion-qa](./specs/M5-integracion-qa.md) | M1–M4 | Bloqueante para entregar | 30–40 min |
+| M5 | [M5-integration-qa](./specs/M5-integration-qa.md) | M1–M4 | Bloqueante para entregar | 30–40 min |
 
 ## 2. Cronograma sugerido (T = arranque)
 
@@ -51,7 +51,7 @@ Asignar **M3** a la persona o el agente con más contexto del dominio, y **M4** 
    - se pide en el canal del equipo;
    - lo hace **una** persona en `main`;
    - los demás hacen rebase.
-2. **Ramas.** `m1-ofertas`, `m2-demandas`, `m3-negociacion` y `m4-home`, todas desde el commit de M0. Commits pequeños.
+2. **Ramas.** `m1-offers`, `m2-demands`, `m3-negotiation` y `m4-home`, todas desde el commit de M0. Commits pequeños.
 3. **Orden de merge a `main` en M5:** M1, después M3, después M2, después M4. Con la propiedad de archivos respetada no debería haber conflictos. El orden prioriza tener primero el camino crítico de la demo (§13, pasos 2–6).
 4. **Merge temprano permitido.** Si M1 termina antes, se mergea apenas pase `typecheck`, `lint` y su definición de terminado. M3 puede así probar el flujo completo antes de M5.
 5. **Antes de cada merge:** `npm run typecheck && npm run lint && npm run build`.
@@ -70,8 +70,8 @@ En el checkpoint de T+1:30, se recorta en este orden. Lo primero de la lista es 
 
 1. **M4:** solo el selector de personas sin persona, más categorías y lotes cercanos con persona. Se sacan las demandas de la home y "Cómo funciona".
 2. **M2:** se saca la edición de demandas. Quedan crear, retirar y el detalle con compatibles, que es lo que se demuestra.
-3. **M1:** se sacan los filtros `kcalMin` y `presentacion`. Se mantienen categoría, radio, disponibilidad y humedad.
-4. **M3:** nunca se recorta el camino propuesta → contraoferta → confirmar → comprobante. Si aprieta, se sacan `/acuerdos` (la lista; el detalle queda) y el aviso de stock en la aceptación.
+3. **M1:** se sacan los filtros `minKcal` y `presentation`. Se mantienen categoría, radio, disponibilidad y humedad.
+4. **M3:** nunca se recorta el camino propuesta → contraoferta → confirmar → comprobante. Si aprieta, se sacan `/agreements` (la lista; el detalle queda) y el aviso de stock en la aceptación.
 5. **M5:** los tests con base pasan a ser opcionales. Los tests puros y el guion de demo son obligatorios.
 
 Lo que **nunca** se recorta, porque es la condición de la demo (brief §9):

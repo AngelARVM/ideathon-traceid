@@ -30,6 +30,7 @@ El PDF `ReValor NEA - Marketplace B2B _ Google AI Studio.pdf` (raíz del repo) e
 | D14 | Stack sin cambios: Next.js 16 (App Router, `cacheComponents` activo), React 19, TypeScript, Tailwind v4, Prisma 7 + `@prisma/adapter-pg`, PostgreSQL (Docker en local, PostgreSQL de Vercel en producción), Biome, `node --test`. |
 | D15 | La demo corre en **Vercel**. La migración y el seed contra la base remota los corre **una persona del equipo, a mano**. Los agentes nunca ejecutan comandos contra la base remota. |
 | D16 | Los tests se escriben al final (M5). Durante M1–M4 se verifica con `npm run typecheck`, `npm run lint` y el recorrido manual. |
+| D17 | **Paths en inglés, textos en español.** Rutas, carpetas y archivos de `src/`, nombres de query params y nombres de los docs de `docs/specs/` van en inglés; el texto visible queda en español. Los valores de enums y los ids del fixture no cambian. Sin alias en español. Ver [ADR-0004](./adr/0004-english-paths.md). |
 
 ## 3. Fuera de alcance
 
@@ -283,7 +284,7 @@ Todo vive en `src/lib/persona.ts` (M0), con `import "server-only"`.
 - **Cookie** `submarket_persona` = `<userId>.<firma>`, donde la firma es HMAC-SHA256 en base64url de `userId` con `PERSONA_SECRET` (`node:crypto`, comparación con `timingSafeEqual`). Atributos: `httpOnly`, `sameSite: "lax"`, `secure` en producción, `path: "/"` y 30 días de vida.
 - `getPersona(): Promise<PersonaWithLocality | null>` lee la cookie, verifica la firma y busca el `User` con `include: { locality: true }`. Si la firma es inválida o el usuario no existe, devuelve `null`. Va envuelta en `React.cache`.
 - `requirePersona(role?: Role): Promise<PersonaWithLocality>`: sin persona, hace `redirect("/")`. Si se pasa `role` y la persona no lo tiene, lanza `AuthorizationError`. Las páginas protegidas la llaman y las server actions también, **siempre**.
-- `selectPersona(formData)` es una server action. Recibe `userId`, verifica que el usuario exista, escribe la cookie y redirige a `/ofertas`, o a `next` si viene un path interno que empiece con `/` y no con `//`.
+- `selectPersona(formData)` es una server action. Recibe `userId`, verifica que el usuario exista, escribe la cookie y redirige a `/offers`, o a `next` si viene un path interno que empiece con `/` y no con `//`.
 - `clearPersona()` es una server action que borra la cookie y redirige a `/`.
 
 **Qué habilita el modo demo:** cualquier visitante puede elegir cualquier persona del seed. A partir de ahí, la autorización es real dentro de esa identidad: ninguna acción confía en ids de dueño enviados por el cliente. Los ids de vendedor y de comprador salen **siempre** de `getPersona()`.
@@ -332,7 +333,7 @@ available ──(editar → estimada)► estimated   (permitido; requiere estima
 3. Releer la propuesta con su oferta y calcular `effectiveTerms`.
 4. `tx.offer.updateMany({ where: { id: offerId, status: "available", quantityTons: { gte: q } }, data: { quantityTons: { decrement: q } } })`. Si `count === 0`, lanza: con la oferta estimada, "La oferta todavía es estimada"; con la oferta retirada, "La oferta fue retirada"; y si no, "Stock insuficiente: quedan X Tn". El throw revierte el paso 2.
 5. `tx.agreement.create(...)` con los términos efectivos, el snapshot de la oferta y `closingComment`. `proposalId @unique` es la segunda barrera contra duplicados.
-6. Fuera de la transacción: `revalidatePath` para `/ofertas`, `/propuestas` y `/acuerdos`, y `redirect` a `/acuerdos/<id>`.
+6. Fuera de la transacción: `revalidatePath` para `/offers`, `/proposals` y `/agreements`, y `redirect` a `/agreements/<id>`.
 
 ## 9. Reglas de lectura y autorización
 
@@ -356,18 +357,18 @@ available ──(editar → estimada)► estimated   (permitido; requiere estima
 
 Se mide desde la localidad de la persona hasta la localidad de la oferta o la demanda. El dataset es chico, así que filtrar y ordenar por distancia en memoria, después de la consulta, es aceptable.
 
-### 9.2 Filtros del catálogo (`/ofertas`)
+### 9.2 Filtros del catálogo (`/offers`)
 
 Los filtros van como query params en español, todos opcionales, y el formulario es GET:
 
 | Param | Valores | Efecto |
 |---|---|---|
-| `categoria` | un `Category` | Igualdad |
-| `radio` | `50`, `100`, `200` | `distanceKm ≤ radio` |
-| `disponibilidad` | `disponible`, `estimada` | Filtra por estado. Por defecto, ambos. |
-| `humedadMax` | número | `humidityPct ≤ valor`. Las ofertas sin dato se excluyen solo si se usa el filtro. |
-| `kcalMin` | entero | `calorificKcalKg ≥ valor`, con la misma regla para los nulos |
-| `presentacion` | un `Presentation` | Igualdad |
+| `category` | un `Category` | Igualdad |
+| `radius` | `50`, `100`, `200` | `distanceKm ≤ radius` |
+| `availability` | `available`, `estimated` | Filtra por estado. Por defecto, ambos. |
+| `maxHumidity` | número | `humidityPct ≤ valor`. Las ofertas sin dato se excluyen solo si se usa el filtro. |
+| `minKcal` | entero | `calorificKcalKg ≥ valor`, con la misma regla para los nulos |
+| `presentation` | un `Presentation` | Igualdad |
 
 - Se excluyen siempre las ofertas `withdrawn`. Las ofertas agotadas se muestran al final, marcadas.
 - Orden: por distancia ascendente y, a igual distancia, las más recientes primero.
@@ -387,21 +388,21 @@ Se ordenan por distancia. **No** se exige que el stock cubra el volumen de la de
 | Ruta | Hito | Acceso |
 |---|---|---|
 | `/` | M4 | Público. Sin persona: selector de personas. Con persona: home tipo PDF. |
-| `/ofertas` | M1 | Persona |
-| `/ofertas/nueva` | M1 | seller. Acepta `?categoria=&cantidad=&titulo=&demanda=` para precargar (§12.2). |
-| `/ofertas/[id]` | M1 | Persona. Enlaza a `/ofertas/[id]/proponer` si la persona es buyer y la oferta admite propuestas. |
-| `/ofertas/[id]/editar` | M1 | seller dueño |
-| `/mis-ofertas` | M1 | seller. Incluye retiradas y acciones de retirar y marcar disponible. |
-| `/ofertas/[id]/proponer` | **M3** | buyer |
-| `/demandas` | M2 | Persona |
-| `/demandas/nueva` | M2 | buyer |
-| `/demandas/[id]` | M2 | Persona. Incluye ofertas compatibles y, para un seller, el CTA "Publicar oferta para esta demanda". |
-| `/demandas/[id]/editar` | M2 | buyer dueño |
-| `/mis-demandas` | M2 | buyer |
-| `/propuestas` | M3 | Persona. Para el buyer, "Mis propuestas"; para el seller, "Propuestas recibidas". |
-| `/propuestas/[id]` | M3 | Las partes. Incluye acciones según §8.2. |
-| `/acuerdos` | M3 | Persona. Lista sus acuerdos. |
-| `/acuerdos/[id]` | M3 | Solo las partes. Comprobante. |
+| `/offers` | M1 | Persona |
+| `/offers/new` | M1 | seller. Acepta `?category=&quantity=&title=&demand=` para precargar (§12.2). |
+| `/offers/[id]` | M1 | Persona. Enlaza a `/offers/[id]/propose` si la persona es buyer y la oferta admite propuestas. |
+| `/offers/[id]/edit` | M1 | seller dueño |
+| `/my-offers` | M1 | seller. Incluye retiradas y acciones de retirar y marcar disponible. |
+| `/offers/[id]/propose` | **M3** | buyer |
+| `/demands` | M2 | Persona |
+| `/demands/new` | M2 | buyer |
+| `/demands/[id]` | M2 | Persona. Incluye ofertas compatibles y, para un seller, el CTA "Publicar oferta para esta demanda". |
+| `/demands/[id]/edit` | M2 | buyer dueño |
+| `/my-demands` | M2 | buyer |
+| `/proposals` | M3 | Persona. Para el buyer, "Mis propuestas"; para el seller, "Propuestas recibidas". |
+| `/proposals/[id]` | M3 | Las partes. Incluye acciones según §8.2. |
+| `/agreements` | M3 | Persona. Lista sus acuerdos. |
+| `/agreements/[id]` | M3 | Solo las partes. Comprobante. |
 
 El header (M0) muestra según el rol:
 
@@ -467,7 +468,7 @@ Son las únicas superficies que un hito consume de otro. Cada una se fija en M0 
 | `src/lib/labels.ts` | `CATEGORY_LABEL`, `OFFER_STATUS_LABEL`, `PRESENTATION_LABEL`, `FREIGHT_LABEL`, `PROPOSAL_STATUS_LABEL`, `PROVINCE_LABEL`, en español |
 | `src/lib/decimal.ts` | `parseTons(s)` y `parsePrice(s)`: aceptan "1.234,5" o "1234.5", validan > 0 y la escala, y devuelven `string` normalizado o un error. Los usan los schemas zod de M1, M2 y M3. |
 | `src/lib/action-result.ts` | `type ActionResult<T = void> = { ok: true; data?: T } \| { ok: false; error: string; fieldErrors?: Record<string, string> }` |
-| `src/components/OfferCard.tsx` | `<OfferCard offer={OfferCardData} distanceKm?={number} />`: tarjeta estilo PDF que enlaza a `/ofertas/[id]`. `OfferCardData` se exporta desde el mismo archivo e incluye `id, title, category, status, estimatedDate, quantityTons (string), pricePerTon (string \| null), humidityPct, calorificKcalKg, presentation, hasWeighbridge, locality {name, province}, seller {name}`. |
+| `src/components/OfferCard.tsx` | `<OfferCard offer={OfferCardData} distanceKm?={number} />`: tarjeta estilo PDF que enlaza a `/offers/[id]`. `OfferCardData` se exporta desde el mismo archivo e incluye `id, title, category, status, estimatedDate, quantityTons (string), pricePerTon (string \| null), humidityPct, calorificKcalKg, presentation, hasWeighbridge, locality {name, province}, seller {name}`. |
 | `src/components/StatusBadge.tsx` | `<OfferStatusBadge status quantityTons />` (con "Agotada") y `<ProposalStatusBadge status />` |
 | `src/components/ui/*` | `Button`, `LinkButton`, `Field`, `Input`, `Select`, `Textarea`, `FormError`, `PageHeader`, `EmptyState`: primitivas con Tailwind |
 
@@ -475,11 +476,11 @@ Si un hito necesita una primitiva nueva, la crea **dentro de su propia carpeta**
 
 ### 12.2 Precarga de oferta desde una demanda
 
-M2 enlaza a `/ofertas/nueva?categoria=<Category>&cantidad=<tons>&titulo=<string>&demanda=<demandId>`. M1 lee esos params como valores iniciales del formulario y, si viene `demanda`, muestra un aviso "Publicando en respuesta a: <título de la demanda>" con enlace a ella. No hay relación en la base entre oferta y demanda.
+M2 enlaza a `/offers/new?category=<Category>&quantity=<tons>&title=<string>&demand=<demandId>`. M1 lee esos params como valores iniciales del formulario y, si viene `demand`, muestra un aviso "Publicando en respuesta a: <título de la demanda>" con enlace a ella. No hay relación en la base entre oferta y demanda.
 
 ### 12.3 Enlace a proponer
 
-M1 renderiza en `/ofertas/[id]` un `LinkButton` a `/ofertas/[id]/proponer` si se cumplen todas estas condiciones: la persona es buyer, el estado no es `withdrawn` y `quantityTons > 0`. M3 es dueño de esa ruta y repite todas las validaciones del lado del servidor.
+M1 renderiza en `/offers/[id]` un `LinkButton` a `/offers/[id]/propose` si se cumplen todas estas condiciones: la persona es buyer, el estado no es `withdrawn` y `quantityTons > 0`. M3 es dueño de esa ruta y repite todas las validaciones del lado del servidor.
 
 ### 12.4 Consultas de lectura cruzadas
 
@@ -497,6 +498,6 @@ Se corre con el seed recién aplicado (`--reset-demo`).
 6. Se ve el comprobante: 80 Tn × $ 27.500 = $ 2.200.000, las dos partes, la leyenda "acuerdo declarado". En Explorar, la oferta de Mercedes ahora muestra 570 Tn.
 7. Cambiar a **Feedlot Resistencia** y abrir su demanda de pulpa. Entre las compatibles aparece "Pulpa de cítricos — zafra 2027", **Estimada** con fecha 01/05/2027. Proponer funciona, pero la confirmación queda bloqueada con el motivo visible.
 8. Como **Citrícola Bella Vista**, publicar una oferta nueva, editarla y retirarla. Como buyer, ver la demanda "Chips para secadero" y su oferta compatible de Virasoro.
-9. Intentar abrir `/acuerdos/<id del paso 6>` como **Yerbatera Oberá**: responde 404.
+9. Intentar abrir `/agreements/<id del paso 6>` como **Yerbatera Oberá**: responde 404.
 
 Distancias calculadas con la fórmula de §9.1 sobre las coordenadas de §5: Bella Vista–Corrientes 118 km, Bella Vista–Mercedes 120 km, Oberá–Virasoro 110 km, Resistencia–Bella Vista 117 km, Resistencia–Corrientes 15 km.

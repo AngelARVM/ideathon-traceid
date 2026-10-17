@@ -9,7 +9,7 @@ import { CatalogFilters } from "./_components/CatalogFilters";
 
 export const metadata: Metadata = { title: "Explorar subproductos" };
 
-export default function OffersPage({ searchParams }: PageProps<"/ofertas">) {
+export default function OffersPage({ searchParams }: PageProps<"/offers">) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <PageHeader
@@ -27,7 +27,7 @@ export default function OffersPage({ searchParams }: PageProps<"/ofertas">) {
 async function Catalog({
   searchParams,
 }: {
-  searchParams: PageProps<"/ofertas">["searchParams"];
+  searchParams: PageProps<"/offers">["searchParams"];
 }) {
   const persona = await requirePersona();
   const filters = parseCatalogFilters(await searchParams);

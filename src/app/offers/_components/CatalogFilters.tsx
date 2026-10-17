@@ -1,27 +1,39 @@
 import Form from "next/form";
 import type { ReactNode } from "react";
-import { Button, LinkButton } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { RADIUS_OPTIONS } from "@/lib/geo";
 import { CATEGORY_LABEL, PRESENTATION_LABEL } from "@/lib/labels";
 import type { CatalogFilters as Filters } from "@/lib/offers/queries";
 
-/** Barra de filtros del catálogo: formulario GET con los query params de §9.2. */
-export function CatalogFilters({ filters }: { filters: Filters }) {
+// TODO(M7): catalog-filters — búsqueda de texto, provincia, precio máximo, stock mínimo, báscula y orden.
+
+/**
+ * Filtros del catálogo en columna: formulario GET con los query params de §9.2. El modo
+ * (`availability`) lo elige el selector de arriba y viaja como campo oculto. `idPrefix` evita
+ * ids repetidos entre la barra lateral y el drawer de mobile.
+ */
+export function CatalogFilters({
+  filters,
+  idPrefix,
+}: {
+  filters: Filters;
+  idPrefix: string;
+}) {
+  const id = (name: string) => `${idPrefix}-${name}`;
   return (
     <Form
       // `key`: al navegar con otros filtros, los controles se vuelven a montar con sus valores.
       key={JSON.stringify(filters)}
       action="/offers"
-      className="grid grid-cols-2 gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-3 lg:grid-cols-7 dark:border-stone-800 dark:bg-stone-900"
+      className="flex flex-col gap-4"
     >
-      <FilterField
-        id="filter-category"
-        label="Categoría"
-        className="col-span-2 sm:col-span-1 lg:col-span-2"
-      >
+      {filters.availability && (
+        <input type="hidden" name="availability" value={filters.availability} />
+      )}
+      <FilterField id={id("category")} label="Categoría">
         <Select
-          id="filter-category"
+          id={id("category")}
           name="category"
           defaultValue={filters.category ?? ""}
         >
@@ -33,37 +45,37 @@ export function CatalogFilters({ filters }: { filters: Filters }) {
           ))}
         </Select>
       </FilterField>
-      <FilterField id="filter-radius" label="Radio">
-        <Select
-          id="filter-radius"
-          name="radius"
-          defaultValue={filters.radius?.toString() ?? ""}
-        >
+
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1.5 text-xs font-bold text-gray-800">
+          Radio desde tu planta
+        </legend>
+        <div className="grid grid-cols-2 gap-1">
           {RADIUS_OPTIONS.map((r) => (
-            <option key={r ?? "all"} value={r ?? ""}>
+            <label
+              key={r ?? "all"}
+              className="flex h-9 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white text-xs font-semibold text-gray-700 transition hover:border-brand-300 has-checked:border-brand-600 has-checked:bg-brand-600 has-checked:text-white"
+            >
+              <input
+                type="radio"
+                name="radius"
+                value={r ?? ""}
+                defaultChecked={(filters.radius ?? null) === r}
+                className="sr-only"
+              />
               {r ? `≤ ${r} km` : "Todas"}
-            </option>
+            </label>
           ))}
-        </Select>
-      </FilterField>
-      <FilterField id="filter-availability" label="Disponibilidad">
+        </div>
+      </fieldset>
+
+      <FilterField id={id("presentation")} label="Presentación">
         <Select
-          id="filter-availability"
-          name="availability"
-          defaultValue={filters.availability ?? ""}
-        >
-          <option value="">Todas</option>
-          <option value="available">Disponible</option>
-          <option value="estimated">Estimada</option>
-        </Select>
-      </FilterField>
-      <FilterField id="filter-presentation" label="Presentación">
-        <Select
-          id="filter-presentation"
+          id={id("presentation")}
           name="presentation"
           defaultValue={filters.presentation ?? ""}
         >
-          <option value="">Todas</option>
+          <option value="">Cualquier presentación</option>
           {Object.entries(PRESENTATION_LABEL).map(([value, text]) => (
             <option key={value} value={value}>
               {text}
@@ -71,32 +83,31 @@ export function CatalogFilters({ filters }: { filters: Filters }) {
           ))}
         </Select>
       </FilterField>
-      <FilterField id="filter-humidity" label="Humedad máx. %">
-        <Input
-          id="filter-humidity"
-          name="maxHumidity"
-          inputMode="decimal"
-          defaultValue={filters.maxHumidity?.toString() ?? ""}
-          placeholder="Ej. 12"
-        />
-      </FilterField>
-      <FilterField id="filter-kcal" label="kcal/kg mín.">
-        <Input
-          id="filter-kcal"
-          name="minKcal"
-          inputMode="numeric"
-          defaultValue={filters.minKcal?.toString() ?? ""}
-          placeholder="Ej. 3500"
-        />
-      </FilterField>
-      <div className="col-span-2 flex gap-2 sm:col-span-3 lg:col-span-7 lg:justify-end">
-        <LinkButton href="/offers" variant="ghost" size="sm">
-          Limpiar
-        </LinkButton>
-        <Button type="submit" size="sm">
-          Aplicar
-        </Button>
+
+      <div className="grid grid-cols-2 gap-3">
+        <FilterField id={id("humidity")} label="Humedad máx. %">
+          <Input
+            id={id("humidity")}
+            name="maxHumidity"
+            inputMode="decimal"
+            defaultValue={filters.maxHumidity?.toString() ?? ""}
+            placeholder="Ej. 12"
+          />
+        </FilterField>
+        <FilterField id={id("kcal")} label="kcal/kg mín.">
+          <Input
+            id={id("kcal")}
+            name="minKcal"
+            inputMode="numeric"
+            defaultValue={filters.minKcal?.toString() ?? ""}
+            placeholder="Ej. 3500"
+          />
+        </FilterField>
       </div>
+
+      <Button type="submit" size="sm" className="w-full">
+        Aplicar filtros
+      </Button>
     </Form>
   );
 }
@@ -104,20 +115,15 @@ export function CatalogFilters({ filters }: { filters: Filters }) {
 function FilterField({
   id,
   label,
-  className = "",
   children,
 }: {
   id: string;
   label: string;
-  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <label
-        htmlFor={id}
-        className="text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400"
-      >
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-xs font-bold text-gray-800">
         {label}
       </label>
       {children}

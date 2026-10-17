@@ -13,10 +13,10 @@ export default function EditOfferPage({
   params,
 }: PageProps<"/offers/[id]/edit">) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <Suspense
         fallback={
-          <div className="h-[40rem] animate-pulse rounded-2xl bg-stone-200/60 dark:bg-stone-800/60" />
+          <div className="h-[40rem] animate-pulse rounded-xl bg-gray-200/60" />
         }
       >
         <EditOffer params={params} />
@@ -49,6 +49,7 @@ async function EditOffer({
         action={updateOffer}
         offerId={id}
         localities={localities}
+        sellerName={persona.name}
         initialValues={values}
         submitLabel="Guardar cambios"
         cancelHref={`/offers/${id}`}

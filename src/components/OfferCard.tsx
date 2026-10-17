@@ -97,8 +97,11 @@ export function OfferCard({
       <div className="flex flex-1 flex-col gap-3 p-4">
         <p className="flex min-w-0 items-center gap-1.5 text-xs text-gray-500">
           <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-600" aria-hidden />
-          <span className="shrink-0 font-semibold text-gray-700">
-            {offer.locality.name}, {PROVINCE_LABEL[offer.locality.province]}
+          <span
+            className="shrink-0 font-semibold text-gray-700"
+            title={PROVINCE_LABEL[offer.locality.province]}
+          >
+            {offer.locality.name}
           </span>
           <span aria-hidden>•</span>
           <span className="truncate">{offer.seller.name}</span>

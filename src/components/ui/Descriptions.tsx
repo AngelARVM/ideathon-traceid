@@ -22,7 +22,7 @@ export function Descriptions({
       {visible.map((item) => (
         <div
           key={item.label}
-          className="flex flex-col gap-0.5 bg-white px-4 py-3"
+          className="flex flex-col gap-0.5 bg-white px-4 py-3 sm:odd:last:col-span-2"
         >
           <dt className="text-xs font-medium text-gray-500">{item.label}</dt>
           <dd className="font-semibold text-gray-900">{item.value}</dd>

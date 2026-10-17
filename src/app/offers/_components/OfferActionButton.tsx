@@ -41,10 +41,7 @@ export function OfferActionButton({
         {pending ? pendingLabel : label}
       </Button>
       {state && !state.ok && (
-        <p
-          role="alert"
-          className="text-xs font-medium text-red-600 dark:text-red-400"
-        >
+        <p role="alert" className="text-xs font-medium text-red-600">
           {state.error}
         </p>
       )}

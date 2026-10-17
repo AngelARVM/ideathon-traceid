@@ -1,5 +1,7 @@
 # TraceID
 
+> **Pivot en preparación:** el nuevo producto es un marketplace regional de subproductos agroindustriales. Leer el [brief](pivot/ideathon_agro_marketplace_contexto.md) y el [apéndice de transición](pivot/11-apendice-pivot-marketplace-agro.md). El resto de este README describe el sistema anterior hasta que se implemente el pivot.
+
 Trazabilidad individual de ganado bovino con historial verificable en Hedera (Testnet).
 La red cambió de Stellar a Hedera: ver [`docs/adr/0003-hedera-instead-of-stellar.md`](docs/adr/0003-hedera-instead-of-stellar.md).
 La documentación de diseño está en [`docs/`](docs/README.md); el plan por etapas en

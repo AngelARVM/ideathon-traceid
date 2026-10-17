@@ -97,13 +97,83 @@ function safeNext(next: FormDataEntryValue | null): string {
   return next;
 }
 
+/**
+ * Al cambiar de persona desde el header se vuelve a la ruta actual, salvo que la nueva persona
+ * no pueda verla: entonces va a la página pública más cercana en vez de a un 404 en plena demo.
+ * Abrir la URL directamente sigue respondiendo 404 (§9, §13 paso 9).
+ */
+async function landingFor(
+  user: { id: string; role: Role },
+  next: string,
+): Promise<string> {
+  const [section, id, sub, ...rest] = next.split("/").filter(Boolean);
+  const buyer = user.role === "buyer";
+
+  if (section === "my-offers") return buyer ? "/offers" : next;
+  if (section === "my-demands") return buyer ? next : "/demands";
+
+  if (section === "offers" && id === "new") return buyer ? "/offers" : next;
+  if (section === "demands" && id === "new") return buyer ? next : "/demands";
+
+  if (!id || rest.length > 0) return next;
+
+  if (section === "offers") {
+    const offer = await db.offer.findUnique({
+      where: { id },
+      select: { sellerId: true, status: true },
+    });
+    if (!offer) return next;
+    const owner = offer.sellerId === user.id;
+    if (offer.status === "withdrawn" && !owner) return "/offers";
+    if (sub === "edit" && !owner) return `/offers/${id}`;
+    if (sub === "propose" && !buyer) return `/offers/${id}`;
+    return next;
+  }
+
+  if (section === "demands") {
+    const demand = await db.demand.findUnique({
+      where: { id },
+      select: { buyerId: true, status: true },
+    });
+    if (!demand) return next;
+    const owner = demand.buyerId === user.id;
+    if (demand.status === "withdrawn" && !owner) return "/demands";
+    if (sub === "edit" && !owner) return `/demands/${id}`;
+    return next;
+  }
+
+  if (section === "proposals" && !sub) {
+    const p = await db.proposal.findUnique({
+      where: { id },
+      select: { buyerId: true, offer: { select: { sellerId: true } } },
+    });
+    if (p && p.buyerId !== user.id && p.offer.sellerId !== user.id) {
+      return "/proposals";
+    }
+    return next;
+  }
+
+  if (section === "agreements" && !sub) {
+    const a = await db.agreement.findUnique({
+      where: { id },
+      select: { buyerId: true, sellerId: true },
+    });
+    if (a && a.buyerId !== user.id && a.sellerId !== user.id) {
+      return "/agreements";
+    }
+    return next;
+  }
+
+  return next;
+}
+
 export async function selectPersona(formData: FormData): Promise<void> {
   "use server";
   const userId = formData.get("userId");
   if (typeof userId !== "string") redirect("/");
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true },
+    select: { id: true, role: true },
   });
   if (!user) redirect("/");
 
@@ -114,7 +184,7 @@ export async function selectPersona(formData: FormData): Promise<void> {
     path: "/",
     maxAge: MAX_AGE_SECONDS,
   });
-  redirect(safeNext(formData.get("next")));
+  redirect(await landingFor(user, safeNext(formData.get("next"))));
 }
 
 export async function clearPersona(): Promise<void> {

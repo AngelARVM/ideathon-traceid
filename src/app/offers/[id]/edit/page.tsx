@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Editar oferta" };
 
 export default function EditOfferPage({
   params,
-}: PageProps<"/ofertas/[id]/editar">) {
+}: PageProps<"/offers/[id]/edit">) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <Suspense
@@ -28,7 +28,7 @@ export default function EditOfferPage({
 async function EditOffer({
   params,
 }: {
-  params: PageProps<"/ofertas/[id]/editar">["params"];
+  params: PageProps<"/offers/[id]/edit">["params"];
 }) {
   const persona = await requirePersona();
   if (persona.role !== "seller") notFound();
@@ -51,7 +51,7 @@ async function EditOffer({
         localities={localities}
         initialValues={values}
         submitLabel="Guardar cambios"
-        cancelHref={`/ofertas/${id}`}
+        cancelHref={`/offers/${id}`}
       />
     </>
   );

@@ -16,12 +16,12 @@ import type { PersonaWithLocality } from "@/lib/persona";
 // Lecturas de ofertas (M1). Filtros y orden del catálogo según docs/00-mvp-spec.md §9.2.
 
 export type CatalogFilters = {
-  categoria?: Category;
-  radio?: 50 | 100 | 200;
-  disponibilidad?: "disponible" | "estimada";
-  humedadMax?: number;
-  kcalMin?: number;
-  presentacion?: Presentation;
+  category?: Category;
+  radius?: 50 | 100 | 200;
+  availability?: "available" | "estimated";
+  maxHumidity?: number;
+  minKcal?: number;
+  presentation?: Presentation;
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -38,29 +38,30 @@ const isIn = <T extends string>(
 export function parseCatalogFilters(params: SearchParams): CatalogFilters {
   const filters: CatalogFilters = {};
 
-  const categoria = first(params.categoria);
-  if (isIn(Category, categoria)) filters.categoria = categoria;
+  const category = first(params.category);
+  if (isIn(Category, category)) filters.category = category;
 
-  const radio = Number(first(params.radio));
-  if (radio === 50 || radio === 100 || radio === 200) filters.radio = radio;
+  const radius = Number(first(params.radius));
+  if (radius === 50 || radius === 100 || radius === 200)
+    filters.radius = radius;
 
-  const disponibilidad = first(params.disponibilidad);
-  if (disponibilidad === "disponible" || disponibilidad === "estimada") {
-    filters.disponibilidad = disponibilidad;
+  const availability = first(params.availability);
+  if (availability === "available" || availability === "estimated") {
+    filters.availability = availability;
   }
 
-  const humedad = Number(first(params.humedadMax)?.replace(",", "."));
-  if (first(params.humedadMax) && Number.isFinite(humedad) && humedad >= 0) {
-    filters.humedadMax = humedad;
+  const humidity = Number(first(params.maxHumidity)?.replace(",", "."));
+  if (first(params.maxHumidity) && Number.isFinite(humidity) && humidity >= 0) {
+    filters.maxHumidity = humidity;
   }
 
-  const kcal = Number(first(params.kcalMin));
-  if (first(params.kcalMin) && Number.isInteger(kcal) && kcal >= 0) {
-    filters.kcalMin = kcal;
+  const kcal = Number(first(params.minKcal));
+  if (first(params.minKcal) && Number.isInteger(kcal) && kcal >= 0) {
+    filters.minKcal = kcal;
   }
 
-  const presentacion = first(params.presentacion);
-  if (isIn(Presentation, presentacion)) filters.presentacion = presentacion;
+  const presentation = first(params.presentation);
+  if (isIn(Presentation, presentation)) filters.presentation = presentation;
 
   return filters;
 }
@@ -102,9 +103,9 @@ export async function listCatalog(
   persona: PersonaWithLocality,
 ): Promise<CatalogItem[]> {
   const status: OfferStatus[] =
-    filters.disponibilidad === "disponible"
+    filters.availability === "available"
       ? ["available"]
-      : filters.disponibilidad === "estimada"
+      : filters.availability === "estimated"
         ? ["estimated"]
         : ["available", "estimated"];
 
@@ -113,14 +114,14 @@ export async function listCatalog(
   const offers = await db.offer.findMany({
     where: {
       status: { in: status },
-      category: filters.categoria,
-      presentation: filters.presentacion,
+      category: filters.category,
+      presentation: filters.presentation,
       humidityPct:
-        filters.humedadMax !== undefined
-          ? { lte: filters.humedadMax }
+        filters.maxHumidity !== undefined
+          ? { lte: filters.maxHumidity }
           : undefined,
       calorificKcalKg:
-        filters.kcalMin !== undefined ? { gte: filters.kcalMin } : undefined,
+        filters.minKcal !== undefined ? { gte: filters.minKcal } : undefined,
     },
     include: cardInclude,
   });
@@ -132,7 +133,7 @@ export async function listCatalog(
       soldOut: offer.status === "available" && offer.quantityTons.lte(0),
     }))
     .filter(
-      (i) => filters.radio === undefined || i.distanceKm <= filters.radio,
+      (i) => filters.radius === undefined || i.distanceKm <= filters.radius,
     );
 
   // Agotadas al final; después por distancia y, a igual distancia, las más recientes.

@@ -13,9 +13,9 @@
 
 ## Archivos permitidos
 
-- `src/app/ofertas/[id]/proponer/**`, la única subcarpeta de `ofertas` que es de este hito.
-- `src/app/propuestas/**`
-- `src/app/acuerdos/**`
+- `src/app/offers/[id]/propose/**`, la única subcarpeta de `offers` que es de este hito.
+- `src/app/proposals/**`
+- `src/app/agreements/**`
 - `src/lib/negotiation/**`
 
 Escribe en `offers.quantity_tons` **solo** dentro de `confirmProposal` (§12.4).
@@ -35,14 +35,14 @@ Todas devuelven `ActionResult` o hacen `redirect`, y validan con zod, `parseTons
 
 | Acción | Actor | Implementación |
 |---|---|---|
-| `createProposal(offerId, quantityTons, pricePerTon, message?)` | `requirePersona("buyer")` | Aplica las condiciones de §8.2: oferta `available` o `estimated` con stock mayor a 0, cantidad ≤ stock y ninguna propuesta abierta del mismo comprador sobre esa oferta. Si ya hay una abierta, devuelve un error con enlace a ella. Termina con `redirect('/propuestas/<id>')`. |
+| `createProposal(offerId, quantityTons, pricePerTon, message?)` | `requirePersona("buyer")` | Aplica las condiciones de §8.2: oferta `available` o `estimated` con stock mayor a 0, cantidad ≤ stock y ninguna propuesta abierta del mismo comprador sobre esa oferta. Si ya hay una abierta, devuelve un error con enlace a ella. Termina con `redirect('/proposals/<id>')`. |
 | `acceptProposal(id)` | `requirePersona("seller")` | `updateMany` con `where: { id, status: "pending", offer: { sellerId: persona.id, status: { not: "withdrawn" } } }` y `data: { status: "accepted", respondedAt: now }`. Si `count === 0`, devuelve un error. Si la cantidad supera el stock actual, devuelve `ok: true` con `data.warning` (D8). |
 | `rejectProposal(id)` | seller | Funciona igual que `acceptProposal`: pasa de `pending` a `rejected`. |
 | `counterProposal(id, counterQuantityTons?, counterPricePerTon?, counterMessage?)` | seller | Exige al menos uno de los dos valores, y que alguno difiera del original. Usa `updateMany` desde `pending`, completa el campo que falte con el original y pasa a `countered`. |
 | `rejectCounter(id)` | `requirePersona("buyer")` | `updateMany` con `where: { id, buyerId: persona.id, status: "countered" }` → `rejected`. |
 | `confirmProposal(id, closingComment?)` | buyer | Sigue **exactamente §8.3**, en una transacción interactiva. Se usa tanto para "Confirmar acuerdo" (desde `accepted`) como para "Aceptar contraoferta" (desde `countered`). `closingComment` admite hasta 500 caracteres. |
 
-Después de cada mutación: `revalidatePath` de `/propuestas`, `/propuestas/<id>` y `/ofertas/<offerId>`. En la confirmación, además, `/ofertas` y `/acuerdos`.
+Después de cada mutación: `revalidatePath` de `/proposals`, `/proposals/<id>` y `/offers/<offerId>`. En la confirmación, además, `/offers` y `/agreements`.
 
 ### `queries.ts`
 
@@ -57,11 +57,11 @@ Después de cada mutación: `revalidatePath` de `/propuestas`, `/propuestas/<id>
 
 | Ruta | Contenido |
 |---|---|
-| `/ofertas/[id]/proponer` | Resumen de la oferta: título, vendedor, localidad, distancia, stock, precio de referencia y badge de estado; si es estimada, el aviso de D10. Formulario:<br>• cantidad en Tn, con máximo el stock visible y ayuda "Disponible: X Tn";<br>• precio por Tn, precargado con el de referencia si existe;<br>• mensaje opcional;<br>• total calculado en vivo, que es solo visual.<br>Botón "Enviar propuesta". Si la persona no es buyer o la oferta no admite propuestas, `notFound()` o un mensaje. |
-| `/propuestas` | Título "Propuestas recibidas" (seller) o "Mis propuestas" (buyer). Dos secciones: **Requieren tu acción** y **Historial**. Cada fila muestra la oferta, la contraparte, los términos efectivos, el `ProposalStatusBadge` y la fecha, y enlaza al detalle. |
-| `/propuestas/[id]` | Línea de tiempo simple, sin chat:<br>1. propuesta original (cantidad, precio, mensaje y fecha);<br>2. contraoferta, si la hay (valores nuevos y mensaje);<br>3. estado actual.<br>Acciones según `allowedActions`:<br>• **seller con `pending`:** "Aceptar", "Rechazar" y "Contraofertar". Contraofertar abre un formulario inline con cantidad, precio y mensaje. Si la cantidad supera el stock, aviso visible.<br>• **buyer con `accepted`:** "Confirmar acuerdo", con textarea de comentario de cierre.<br>• **buyer con `countered`:** "Aceptar contraoferta y confirmar", con textarea de comentario, y "Rechazar contraoferta".<br>Si `confirmBlockReason` no es nulo, el botón queda deshabilitado y el motivo se ve al lado. Si la propuesta está `confirmed`, enlace "Ver comprobante". |
-| `/acuerdos` | Lista de acuerdos de la persona: material, contraparte, Tn, total y fecha. |
-| `/acuerdos/[id]` | **Comprobante**:<br>• encabezado "Acuerdo comercial declarado · N° <id corto>";<br>• vendedor y comprador, con sus localidades;<br>• material, categoría y origen;<br>• cantidad, precio/Tn y **total** (D9: solo el precio final);<br>• características y logística copiadas del snapshot;<br>• comentario de cierre y fecha de confirmación.<br>Leyenda fija: "SubMarket registra un acuerdo declarado entre las partes. El pago, el flete y la entrega ocurren fuera de la plataforma y no son verificados por SubMarket." Datos tomados **solo** del `Agreement`, nunca de la oferta viva. |
+| `/offers/[id]/propose` | Resumen de la oferta: título, vendedor, localidad, distancia, stock, precio de referencia y badge de estado; si es estimada, el aviso de D10. Formulario:<br>• cantidad en Tn, con máximo el stock visible y ayuda "Disponible: X Tn";<br>• precio por Tn, precargado con el de referencia si existe;<br>• mensaje opcional;<br>• total calculado en vivo, que es solo visual.<br>Botón "Enviar propuesta". Si la persona no es buyer o la oferta no admite propuestas, `notFound()` o un mensaje. |
+| `/proposals` | Título "Propuestas recibidas" (seller) o "Mis propuestas" (buyer). Dos secciones: **Requieren tu acción** y **Historial**. Cada fila muestra la oferta, la contraparte, los términos efectivos, el `ProposalStatusBadge` y la fecha, y enlaza al detalle. |
+| `/proposals/[id]` | Línea de tiempo simple, sin chat:<br>1. propuesta original (cantidad, precio, mensaje y fecha);<br>2. contraoferta, si la hay (valores nuevos y mensaje);<br>3. estado actual.<br>Acciones según `allowedActions`:<br>• **seller con `pending`:** "Aceptar", "Rechazar" y "Contraofertar". Contraofertar abre un formulario inline con cantidad, precio y mensaje. Si la cantidad supera el stock, aviso visible.<br>• **buyer con `accepted`:** "Confirmar acuerdo", con textarea de comentario de cierre.<br>• **buyer con `countered`:** "Aceptar contraoferta y confirmar", con textarea de comentario, y "Rechazar contraoferta".<br>Si `confirmBlockReason` no es nulo, el botón queda deshabilitado y el motivo se ve al lado. Si la propuesta está `confirmed`, enlace "Ver comprobante". |
+| `/agreements` | Lista de acuerdos de la persona: material, contraparte, Tn, total y fecha. |
+| `/agreements/[id]` | **Comprobante**:<br>• encabezado "Acuerdo comercial declarado · N° <id corto>";<br>• vendedor y comprador, con sus localidades;<br>• material, categoría y origen;<br>• cantidad, precio/Tn y **total** (D9: solo el precio final);<br>• características y logística copiadas del snapshot;<br>• comentario de cierre y fecha de confirmación.<br>Leyenda fija: "SubMarket registra un acuerdo declarado entre las partes. El pago, el flete y la entrega ocurren fuera de la plataforma y no son verificados por SubMarket." Datos tomados **solo** del `Agreement`, nunca de la oferta viva. |
 
 ## Definición de terminado
 
@@ -71,5 +71,5 @@ Después de cada mutación: `revalidatePath` de `/propuestas`, `/propuestas/<id>
 - [ ] Una propuesta sobre `o-pulpa-zafra-2027` puede aceptarse, pero la confirmación queda bloqueada con el motivo visible. Después de "Marcar disponible" (M1), se confirma.
 - [ ] Un doble clic en "Confirmar" o un reenvío del form genera **un** solo acuerdo y un solo descuento de stock. Se verifica a mano.
 - [ ] Si se confirma una propuesta por más Tn que el stock que queda, se ve un error claro y no se descuenta nada.
-- [ ] Una persona ajena que abre `/propuestas/<id>` o `/acuerdos/<id>` recibe 404.
+- [ ] Una persona ajena que abre `/proposals/<id>` o `/agreements/<id>` recibe 404.
 - [ ] `npm run typecheck` y `npm run lint` pasan.

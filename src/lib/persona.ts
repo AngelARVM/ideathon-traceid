@@ -86,13 +86,13 @@ export async function requirePersona(
 
 /** Solo paths internos: evita redirecciones abiertas (`//host`, `/\host`). */
 function safeNext(next: FormDataEntryValue | null): string {
-  if (typeof next !== "string") return "/ofertas";
+  if (typeof next !== "string") return "/offers";
   if (
     !next.startsWith("/") ||
     next.startsWith("//") ||
     next.startsWith("/\\")
   ) {
-    return "/ofertas";
+    return "/offers";
   }
   return next;
 }

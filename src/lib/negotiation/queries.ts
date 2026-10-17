@@ -14,7 +14,7 @@ import {
   totalAmount,
 } from "./terms";
 
-// Lecturas de M3 (docs/specs/M3-negociacion-acuerdos.md). Una persona que no es parte recibe
+// Lecturas de M3 (docs/specs/M3-negotiation-agreements.md). Una persona que no es parte recibe
 // `notFound()`, para no revelar que el recurso existe (§9). Los `Decimal` salen como string.
 
 const str = (d: { toString(): string } | null) =>

@@ -12,20 +12,20 @@ import { CATEGORY_LABEL } from "@/lib/labels";
 import { markOfferAvailable, withdrawOffer } from "@/lib/offers/actions";
 import { listMyOffers, type MyOffer } from "@/lib/offers/queries";
 import { requirePersona } from "@/lib/persona";
-import { OfferActionButton } from "../ofertas/_components/OfferActionButton";
+import { OfferActionButton } from "../offers/_components/OfferActionButton";
 
 export const metadata: Metadata = { title: "Mis ofertas" };
 
 export default function MyOffersPage({
   searchParams,
-}: PageProps<"/mis-ofertas">) {
+}: PageProps<"/my-offers">) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <PageHeader
         title="Mis ofertas"
         description="Tus lotes publicados, con su stock y las propuestas que esperan respuesta."
         actions={
-          <LinkButton href="/ofertas/nueva">
+          <LinkButton href="/offers/new">
             <Plus className="h-4 w-4" aria-hidden />
             Publicar oferta
           </LinkButton>
@@ -45,11 +45,11 @@ export default function MyOffersPage({
 async function MyOffers({
   searchParams,
 }: {
-  searchParams: PageProps<"/mis-ofertas">["searchParams"];
+  searchParams: PageProps<"/my-offers">["searchParams"];
 }) {
   const persona = await requirePersona();
   if (persona.role !== "seller") notFound();
-  const showWithdrawn = (await searchParams).retiradas === "1";
+  const showWithdrawn = (await searchParams).showWithdrawn === "true";
 
   const offers = await listMyOffers(persona);
   const withdrawnCount = offers.filter((o) => o.status === "withdrawn").length;
@@ -62,7 +62,9 @@ async function MyOffers({
       {withdrawnCount > 0 && (
         <div className="flex justify-end">
           <Link
-            href={showWithdrawn ? "/mis-ofertas" : "/mis-ofertas?retiradas=1"}
+            href={
+              showWithdrawn ? "/my-offers" : "/my-offers?showWithdrawn=true"
+            }
             className="text-sm font-semibold text-campo-700 hover:underline dark:text-campo-300"
           >
             {showWithdrawn
@@ -75,9 +77,7 @@ async function MyOffers({
         <EmptyState
           title="Todavía no tenés ofertas activas"
           description="Publicá un lote para que los compradores cercanos lo encuentren."
-          action={
-            <LinkButton href="/ofertas/nueva">Publicar oferta</LinkButton>
-          }
+          action={<LinkButton href="/offers/new">Publicar oferta</LinkButton>}
         />
       ) : (
         <ul className="flex flex-col gap-3">
@@ -107,7 +107,7 @@ function MyOfferRow({ offer }: { offer: MyOffer }) {
           </span>
         </div>
         <Link
-          href={`/ofertas/${offer.id}`}
+          href={`/offers/${offer.id}`}
           className="mt-1 block truncate font-bold hover:text-campo-700 dark:hover:text-campo-300"
         >
           {offer.title}
@@ -123,7 +123,7 @@ function MyOfferRow({ offer }: { offer: MyOffer }) {
           {" · "}
           {offer.pendingProposals > 0 ? (
             <Link
-              href="/propuestas"
+              href="/proposals"
               className="font-semibold text-campo-700 hover:underline dark:text-campo-300"
             >
               {offer.pendingProposals}{" "}
@@ -139,7 +139,7 @@ function MyOfferRow({ offer }: { offer: MyOffer }) {
       {!withdrawn && (
         <div className="flex shrink-0 flex-wrap items-start gap-2">
           <LinkButton
-            href={`/ofertas/${offer.id}/editar`}
+            href={`/offers/${offer.id}/edit`}
             variant="secondary"
             size="sm"
           >

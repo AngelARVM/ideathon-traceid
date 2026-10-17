@@ -56,7 +56,7 @@ export function OfferCard({
 
   return (
     <Link
-      href={`/ofertas/${offer.id}`}
+      href={`/offers/${offer.id}`}
       className={`group flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-campo-300 hover:shadow-md dark:border-stone-800 dark:bg-stone-900 dark:hover:border-campo-700 ${soldOut ? "opacity-70" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">

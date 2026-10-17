@@ -106,7 +106,7 @@ Crear exactamente lo que lista §12.1:
 - **`src/app/not-found.tsx`:** textos de SubMarket.
 - **`src/app/globals.css`:** se conserva la paleta `campo`/`tierra`. Se pueden agregar tokens, pero no se renombran.
 - **Componentes de §12.1:** `src/components/OfferCard.tsx`, `src/components/StatusBadge.tsx` y `src/components/ui/*`. `OfferCard` sigue el estilo de tarjeta de lote del PDF: categoría, localidad + vendedor, humedad y kcal si están, Tn disponibles, $/Tn, chip de distancia, badge Estimada o Agotada y "Báscula en planta" si `hasWeighbridge`. **Sin** el sello "Verificado".
-- **`src/app/page.tsx`:** placeholder mínimo que M4 reemplaza. Muestra las tarjetas de persona si no hay cookie y un enlace a `/ofertas` si la hay. Alcanza con que el flujo funcione.
+- **`src/app/page.tsx`:** placeholder mínimo que M4 reemplaza. Muestra las tarjetas de persona si no hay cookie y un enlace a `/offers` si la hay. Alcanza con que el flujo funcione.
 
 ### 6. Documentación mínima
 
@@ -115,7 +115,7 @@ Crear exactamente lo que lista §12.1:
 
 ## Archivos que este hito puede tocar
 
-Todo el repo. Es el único hito con permiso amplio. Al terminar, **no** debe existir `src/app/ofertas`, `src/app/demandas`, `src/app/propuestas`, `src/app/acuerdos` ni ninguna carpeta `src/lib/{offers,demands,negotiation,home}`: son de M1–M4.
+Todo el repo. Es el único hito con permiso amplio. Al terminar, **no** debe existir `src/app/offers`, `src/app/demands`, `src/app/proposals`, `src/app/agreements` ni ninguna carpeta `src/lib/{offers,demands,negotiation,home}`: son de M1–M4.
 
 ## Definición de terminado
 
@@ -125,7 +125,7 @@ Todo el repo. Es el único hito con permiso amplio. Al terminar, **no** debe exi
 - [ ] El seed es idempotente y `--reset-demo` restaura el stock.
 - [ ] En `npm run dev`:
   - sin cookie, `/` muestra las 6 personas;
-  - elegir una redirige a `/ofertas`, que puede dar 404 porque todavía no existe;
+  - elegir una redirige a `/offers`, que puede dar 404 porque todavía no existe;
   - el header muestra la persona y la navegación de su rol;
   - cambiar de persona desde el header funciona sin recargar manualmente.
 - [ ] Una cookie `submarket_persona` adulterada, por ejemplo con otro `userId` y la firma vieja, hace que `getPersona()` devuelva `null`.

@@ -1,37 +1,9 @@
-import Link from "next/link";
-import { type ReactNode, Suspense } from "react";
-import { requirePersona } from "@/lib/persona";
+import type { ReactNode } from "react";
 
-async function DemandNavigation() {
-  const persona = await requirePersona();
-  return (
-    <nav
-      aria-label="Navegación de demandas"
-      className="mb-6 flex flex-wrap gap-4 text-sm font-semibold text-campo-700 dark:text-campo-300"
-    >
-      <Link href="/demands" className="hover:underline">
-        Todas las demandas
-      </Link>
-      {persona.role === "buyer" && (
-        <>
-          <Link href="/my-demands" className="hover:underline">
-            Mis demandas
-          </Link>
-          <Link href="/demands/new" className="hover:underline">
-            Publicar demanda
-          </Link>
-        </>
-      )}
-    </nav>
-  );
-}
-
+/** Contenedor de las páginas de demandas. La navegación por rol ya está en el header. */
 export function DemandShell({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <Suspense fallback={<div className="mb-6 h-5" />}>
-        <DemandNavigation />
-      </Suspense>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {children}
     </div>
   );
@@ -39,8 +11,16 @@ export function DemandShell({ children }: { children: ReactNode }) {
 
 export function DemandLoading() {
   return (
-    <output className="block py-12 text-sm text-stone-500">
-      Cargando demandas…
+    <output className="block space-y-4" aria-label="Cargando demandas…">
+      <div className="h-10 w-72 animate-pulse rounded-lg bg-gray-200/60" />
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {["a", "b", "c"].map((k) => (
+          <div
+            key={k}
+            className="h-64 animate-pulse rounded-xl bg-gray-200/60"
+          />
+        ))}
+      </div>
     </output>
   );
 }

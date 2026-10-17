@@ -23,7 +23,7 @@ async function NewDemandContent() {
   if (persona.role !== "buyer") notFound();
   const localities = await listLocalities();
   return (
-    <>
+    <div className="mx-auto max-w-4xl">
       <PageHeader
         title="Publicar demanda"
         description="Contá qué subproducto buscás y encontrá ofertas cercanas."
@@ -42,6 +42,6 @@ async function NewDemandContent() {
           localityId: persona.localityId,
         }}
       />
-    </>
+    </div>
   );
 }

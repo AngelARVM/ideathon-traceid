@@ -1,7 +1,7 @@
 import { FileCheck2, Info } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { type ReactNode, Suspense } from "react";
+import type { ReactNode } from "react";
 import { formatArs, formatArsPerTon, formatTons } from "@/lib/format";
 import {
   CATEGORY_LABEL,
@@ -14,21 +14,11 @@ import { requirePersona } from "@/lib/persona";
 
 export const metadata: Metadata = { title: "Comprobante de acuerdo" };
 
-export default function AgreementPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <Suspense fallback={<div className="h-96" />}>
-        <AgreementContent params={params} />
-      </Suspense>
-    </div>
-  );
-}
+// Bloqueante a propósito: así `notFound()` llega antes del shell y responde con un 404 real
+// a quien no es parte (§9, §13 paso 9), en vez de un 200 con la UI de "no encontrado".
+export const instant = false;
 
-async function AgreementContent({
+export default async function AgreementPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -39,7 +29,7 @@ async function AgreementContent({
   const a = await getAgreementForParty(id, persona);
 
   return (
-    <>
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <article className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-campo-50 px-5 py-4 dark:border-stone-800 dark:bg-campo-950/40">
           <div className="flex items-center gap-3">
@@ -154,7 +144,7 @@ async function AgreementContent({
           Ver la negociación
         </Link>
       </p>
-    </>
+    </div>
   );
 }
 

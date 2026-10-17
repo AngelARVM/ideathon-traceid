@@ -1,7 +1,7 @@
 import { AlertTriangle, CalendarClock, FileCheck2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { type ReactNode, Suspense } from "react";
+import type { ReactNode } from "react";
 import { ProposalStatusBadge } from "@/components/StatusBadge";
 import { LinkButton } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -21,20 +21,6 @@ import { requirePersona } from "@/lib/persona";
 import { BuyerActions, SellerActions } from "./ProposalActions";
 
 export const metadata: Metadata = { title: "Propuesta" };
-
-export default function ProposalPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <Suspense fallback={<div className="h-96" />}>
-        <ProposalContent params={params} />
-      </Suspense>
-    </div>
-  );
-}
 
 const STATUS_TEXT: Record<
   ProposalView["status"],
@@ -63,7 +49,10 @@ const STATUS_TEXT: Record<
   },
 };
 
-async function ProposalContent({
+// Bloqueante a propósito: así `notFound()` responde con un 404 real a quien no es parte (§9).
+export const instant = false;
+
+export default async function ProposalPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -78,7 +67,7 @@ async function ProposalContent({
     p.status === "countered";
 
   return (
-    <>
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <PageHeader
         title={p.offer.title}
         description={
@@ -195,7 +184,7 @@ async function ProposalContent({
           ← Volver a propuestas
         </Link>
       </p>
-    </>
+    </div>
   );
 }
 

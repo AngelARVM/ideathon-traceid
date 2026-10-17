@@ -1,4 +1,4 @@
-# Atajos de desarrollo. El despliegue sigue siendo manual (docs/07).
+# Atajos de desarrollo. El despliegue sigue siendo manual (docs/00-mvp-spec.md, D15).
 
 SHELL := /bin/bash
 .ONESHELL:
@@ -30,21 +30,12 @@ reset: ## BORRA la base y vuelve a migrar y sembrar desde cero
 	@docker compose down -v
 	@docker compose up -d --wait
 	@npm run db:migrate
-	@npm run db:seed -- --reset
-
-.PHONY: drain
-drain: ## Drena el outbox una vez (en S2 confirma sin cadena)
-	@npm run outbox:drain
+	@npm run db:seed -- --reset-demo
 
 .PHONY: check
-check: ## Tests, tipos y linter
-	@npm test
+check: ## Tipos y linter
 	@npm run typecheck
 	@npm run lint
-
-.PHONY: contract
-contract: ## Compila y testea el contrato (requiere Foundry)
-	@cd contracts/traceid && forge test
 
 .PHONY: help
 help:

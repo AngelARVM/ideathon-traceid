@@ -1,4 +1,4 @@
-/** Isotipo del prototipo: cabeza vacuna esquemática con un nodo. */
+/** Isotipo de SubMarket: una hoja con un ciclo de reaprovechamiento. */
 export function LogoMark({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg
@@ -11,10 +11,33 @@ export function LogoMark({ className = "w-5 h-5" }: { className?: string }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M5 4l3 5h8l3-5" />
-      <path d="M7 9v4c0 3 2 5 5 5s5-2 5-5V9" />
-      <circle cx="12" cy="13" r="1.5" className="fill-amber-400 stroke-none" />
-      <path d="M12 18v3" />
+      <path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z" />
+      <path d="M5 19c3-4 6-7 10-10" />
+      <circle
+        cx="17.5"
+        cy="17.5"
+        r="2"
+        className="fill-amber-400 stroke-none"
+      />
     </svg>
+  );
+}
+
+/** Marca completa: isotipo, nombre y tagline. */
+export function Logo() {
+  return (
+    <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-campo-600 text-white shadow-md shadow-campo-950/15 transition-colors group-hover:bg-campo-700">
+        <LogoMark className="h-6 w-6" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-lg font-bold leading-tight tracking-tight text-stone-950 dark:text-white">
+          Sub<span className="text-campo-600 dark:text-campo-300">Market</span>
+        </span>
+        <span className="hidden truncate text-[11px] leading-none text-stone-500 dark:text-stone-400 sm:block">
+          Lo que sobra, vale.
+        </span>
+      </span>
+    </span>
   );
 }

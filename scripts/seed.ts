@@ -1,15 +1,20 @@
-// Datos operativos de demo: organizaciones, usuarios, membresías, establecimientos y lotes.
-// Uso: npm run db:seed [-- --reset] [-- --allow-remote]
+// Fixture de demo de SubMarket (docs/00-mvp-spec.md §5 y §11): localidades, personas,
+// ofertas y demandas. Todos los precios, volúmenes y fechas son ficticios.
+// Uso: npm run db:seed [-- --reset-demo] [-- --allow-remote]
 //
-// Las contraseñas son fixtures de demo, no secretos (docs/07). Por eso el script se niega a
-// correr contra una base que no sea local salvo con --allow-remote.
+// Es idempotente: hace upsert por id fijo. Con --reset-demo borra además todas las propuestas
+// y acuerdos, y las ofertas y demandas creadas en runtime, y restaura el stock del fixture.
 
 import { createPrismaClient } from "../src/db/client";
-import type { MembershipRole as Role } from "../src/generated/prisma/enums";
-import { newId } from "../src/lib/ids";
-import { hashPassword } from "../src/lib/password";
+import type {
+  Category,
+  Freight,
+  OfferStatus,
+  Presentation,
+  Province,
+  Role,
+} from "../src/generated/prisma/enums";
 
-const DEMO_PASSWORD = "demo1234";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 const args = new Set(process.argv.slice(2));
@@ -23,159 +28,400 @@ if (!url) {
 if (!LOCAL_HOSTS.has(new URL(url).hostname) && !args.has("--allow-remote")) {
   console.error(
     `Negado: DATABASE_URL apunta a "${new URL(url).hostname}", que no es local.\n` +
-      "El seed crea usuarios con contraseñas conocidas. Usá --allow-remote si es intencional.",
+      "El seed sobrescribe los datos de demo. Usá --allow-remote si es intencional.",
   );
   process.exit(1);
 }
 
 const db = createPrismaClient(url);
 
-const orgA = { id: newId(), name: "La Esperanza Agropecuaria (demo)" };
-const orgB = { id: newId(), name: "Estancia San Roque (demo)" };
-
-const demoUsers: { email: string; name: string; org: string; role: Role }[] = [
+const localities: {
+  id: string;
+  name: string;
+  province: Province;
+  lat: number;
+  lng: number;
+}[] = [
   {
-    email: "owner@demo.local",
-    name: "Titular Demo",
-    org: orgA.id,
-    role: "owner",
+    id: "corrientes",
+    name: "Corrientes",
+    province: "corrientes",
+    lat: -27.4692,
+    lng: -58.8306,
   },
   {
-    email: "vet@demo.local",
-    name: "Profesional Demo",
-    org: orgA.id,
-    role: "professional",
+    id: "bella-vista",
+    name: "Bella Vista",
+    province: "corrientes",
+    lat: -28.5096,
+    lng: -59.0434,
   },
   {
-    email: "operator@demo.local",
-    name: "Operador Demo",
-    org: orgA.id,
-    role: "operator",
+    id: "mercedes",
+    name: "Mercedes",
+    province: "corrientes",
+    lat: -29.1817,
+    lng: -58.0753,
   },
-  // Usuario de otra organización: sirve para el caso de escritura cruzada (docs/09, caso 2).
   {
-    email: "other-org@demo.local",
-    name: "Titular San Roque",
-    org: orgB.id,
-    role: "owner",
+    id: "gobernador-virasoro",
+    name: "Gobernador Virasoro",
+    province: "corrientes",
+    lat: -28.05,
+    lng: -56.0333,
+  },
+  {
+    id: "santo-tome",
+    name: "Santo Tomé",
+    province: "corrientes",
+    lat: -28.5499,
+    lng: -56.0411,
+  },
+  {
+    id: "paso-de-los-libres",
+    name: "Paso de los Libres",
+    province: "corrientes",
+    lat: -29.7125,
+    lng: -57.0877,
+  },
+  {
+    id: "posadas",
+    name: "Posadas",
+    province: "misiones",
+    lat: -27.3671,
+    lng: -55.8961,
+  },
+  {
+    id: "obera",
+    name: "Oberá",
+    province: "misiones",
+    lat: -27.4871,
+    lng: -55.1199,
+  },
+  {
+    id: "eldorado",
+    name: "Eldorado",
+    province: "misiones",
+    lat: -26.4084,
+    lng: -54.6941,
+  },
+  {
+    id: "montecarlo",
+    name: "Montecarlo",
+    province: "misiones",
+    lat: -26.5662,
+    lng: -54.7574,
+  },
+  {
+    id: "resistencia",
+    name: "Resistencia",
+    province: "chaco",
+    lat: -27.4606,
+    lng: -58.9839,
+  },
+  {
+    id: "saenz-pena",
+    name: "Presidencia Roque Sáenz Peña",
+    province: "chaco",
+    lat: -26.7852,
+    lng: -60.4388,
+  },
+  {
+    id: "charata",
+    name: "Charata",
+    province: "chaco",
+    lat: -27.2144,
+    lng: -61.1881,
   },
 ];
 
-const estEsperanza = {
-  id: newId(),
-  orgId: orgA.id,
-  name: "La Esperanza",
-  publicLabel: "Est. La Esperanza",
-  officialCode: "22.012.0.00456/00",
-  address: "Ruta Provincial 5 km 42, Chaco",
-  notes: "Establecimiento principal de la demo.",
-};
-const estOmbu = {
-  id: newId(),
-  orgId: orgA.id,
-  name: "El Ombú",
-  publicLabel: "Est. El Ombú",
-  officialCode: "22.012.0.00789/00",
-};
-const estSanRoque = {
-  id: newId(),
-  orgId: orgB.id,
-  name: "San Roque",
-  publicLabel: "Est. San Roque",
-  officialCode: "18.004.0.01234/00",
-};
+const users: {
+  id: string;
+  name: string;
+  role: Role;
+  localityId: string;
+  tagline: string;
+}[] = [
+  {
+    id: "p-molinos-ibera",
+    name: "Molinos del Iberá",
+    role: "seller",
+    localityId: "mercedes",
+    tagline: "Molino arrocero",
+  },
+  {
+    id: "p-forestal-virasoro",
+    name: "Forestal Virasoro",
+    role: "seller",
+    localityId: "gobernador-virasoro",
+    tagline: "Aserradero y chipeadora",
+  },
+  {
+    id: "p-citricola-bella-vista",
+    name: "Citrícola Bella Vista",
+    role: "seller",
+    localityId: "bella-vista",
+    tagline: "Planta juguera",
+  },
+  {
+    id: "p-granja-bella-vista",
+    name: "Granja Avícola Bella Vista",
+    role: "buyer",
+    localityId: "bella-vista",
+    tagline: "Producción avícola",
+  },
+  {
+    id: "p-yerbatera-obera",
+    name: "Yerbatera Oberá",
+    role: "buyer",
+    localityId: "obera",
+    tagline: "Secadero de yerba mate",
+  },
+  {
+    id: "p-feedlot-resistencia",
+    name: "Feedlot Resistencia",
+    role: "buyer",
+    localityId: "resistencia",
+    tagline: "Engorde bovino",
+  },
+];
 
-const demoLots = [
+const offers: {
+  id: string;
+  sellerId: string;
+  localityId: string;
+  title: string;
+  category: Category;
+  description: string;
+  status: OfferStatus;
+  estimatedDate: Date | null;
+  quantityTons: string;
+  pricePerTon: string;
+  humidityPct: string;
+  calorificKcalKg: number | null;
+  presentation: Presentation;
+  freight: Freight;
+  hasWeighbridge: boolean;
+  labAnalysis: string | null;
+}[] = [
   {
-    establishmentId: estEsperanza.id,
-    orgId: orgA.id,
-    name: "Recría 2025",
-    publicLabel: "Recría 2025",
+    id: "o-cascarilla-mercedes",
+    sellerId: "p-molinos-ibera",
+    localityId: "mercedes",
+    title: "Cascarilla de arroz a granel",
+    category: "cascarilla_arroz",
+    description:
+      "Cascarilla seca del descascarado diario del molino. Suele utilizarse como cama avícola o combustible de biomasa.",
+    status: "available",
+    estimatedDate: null,
+    quantityTons: "650",
+    pricePerTon: "28500",
+    humidityPct: "10.8",
+    calorificKcalKg: 3550,
+    presentation: "granel",
+    freight: "retiro_en_planta",
+    hasWeighbridge: true,
+    labAnalysis: "Análisis de humedad y cenizas, laboratorio externo, 09/2026",
   },
   {
-    establishmentId: estEsperanza.id,
-    orgId: orgA.id,
-    name: "Vaquillonas",
-    publicLabel: "Vaquillonas",
+    id: "o-cascarilla-corrientes",
+    sellerId: "p-molinos-ibera",
+    localityId: "corrientes",
+    title: "Cascarilla de arroz en big bags",
+    category: "cascarilla_arroz",
+    description:
+      "Cascarilla embolsada en big bags, en depósito de Corrientes. Práctica para cargas chicas.",
+    status: "available",
+    estimatedDate: null,
+    quantityTons: "120",
+    pricePerTon: "32000",
+    humidityPct: "11.5",
+    calorificKcalKg: 3500,
+    presentation: "big_bag",
+    freight: "a_convenir",
+    hasWeighbridge: false,
+    labAnalysis: null,
   },
   {
-    establishmentId: estOmbu.id,
-    orgId: orgA.id,
-    name: "Invernada",
-    publicLabel: "Invernada",
+    id: "o-chips-virasoro",
+    sellerId: "p-forestal-virasoro",
+    localityId: "gobernador-virasoro",
+    title: "Chips de pino para caldera",
+    category: "chips_forestales",
+    description:
+      "Chips de pino de chipeadora propia, granulometría pareja. Suelen usarse en calderas y secaderos.",
+    status: "available",
+    estimatedDate: null,
+    quantityTons: "1200",
+    pricePerTon: "34000",
+    humidityPct: "32",
+    calorificKcalKg: 3950,
+    presentation: "granel",
+    freight: "entrega_vendedor",
+    hasWeighbridge: true,
+    labAnalysis: null,
   },
   {
-    establishmentId: estSanRoque.id,
-    orgId: orgB.id,
-    name: "Rodeo general",
-    publicLabel: "Rodeo general",
+    id: "o-aserrin-santo-tome",
+    sellerId: "p-forestal-virasoro",
+    localityId: "santo-tome",
+    title: "Aserrín y viruta de pino",
+    category: "aserrin_virutas",
+    description:
+      "Mezcla de aserrín y viruta del aserradero. Suele utilizarse para pellets, camas o combustible.",
+    status: "available",
+    estimatedDate: null,
+    quantityTons: "400",
+    pricePerTon: "31000",
+    humidityPct: "13.5",
+    calorificKcalKg: 4200,
+    presentation: "granel",
+    freight: "retiro_en_planta",
+    hasWeighbridge: false,
+    labAnalysis: null,
+  },
+  {
+    id: "o-pulpa-bella-vista",
+    sellerId: "p-citricola-bella-vista",
+    localityId: "bella-vista",
+    title: "Pulpa de cítricos fresca",
+    category: "orujos_bagazos",
+    description:
+      "Pulpa y cáscara frescas de la planta juguera. Alta humedad: conviene retirarla en pocos días.",
+    status: "available",
+    estimatedDate: null,
+    quantityTons: "40",
+    pricePerTon: "8000",
+    humidityPct: "80",
+    calorificKcalKg: null,
+    presentation: "granel",
+    freight: "retiro_en_planta",
+    hasWeighbridge: true,
+    labAnalysis: null,
+  },
+  {
+    id: "o-pulpa-zafra-2027",
+    sellerId: "p-citricola-bella-vista",
+    localityId: "bella-vista",
+    title: "Pulpa de cítricos — zafra 2027",
+    category: "orujos_bagazos",
+    description:
+      "Volumen estimado para la próxima zafra. Suele destinarse a suplementación de rodeos o compostaje.",
+    status: "estimated",
+    estimatedDate: new Date("2027-05-01"),
+    quantityTons: "300",
+    pricePerTon: "7500",
+    humidityPct: "80",
+    calorificKcalKg: null,
+    presentation: "granel",
+    freight: "a_convenir",
+    hasWeighbridge: true,
+    labAnalysis: null,
+  },
+];
+
+const demands: {
+  id: string;
+  buyerId: string;
+  localityId: string;
+  title: string;
+  category: Category;
+  description: string;
+  quantityTons: string;
+  maxPricePerTon: string | null;
+  neededBy: Date;
+  radiusKm: number;
+}[] = [
+  {
+    id: "d-cama-avicola",
+    buyerId: "p-granja-bella-vista",
+    localityId: "bella-vista",
+    title: "Cascarilla para cama de pollo",
+    category: "cascarilla_arroz",
+    description: "Reposición de cama para los galpones antes del verano.",
+    quantityTons: "80",
+    maxPricePerTon: "30000",
+    neededBy: new Date("2026-11-30"),
+    radiusKm: 200,
+  },
+  {
+    id: "d-secadero-obera",
+    buyerId: "p-yerbatera-obera",
+    localityId: "obera",
+    title: "Chips para secadero",
+    category: "chips_forestales",
+    description: "Combustible para el secadero de yerba durante la temporada.",
+    quantityTons: "300",
+    maxPricePerTon: "35000",
+    neededBy: new Date("2026-12-15"),
+    radiusKm: 200,
+  },
+  {
+    id: "d-suplemento-feedlot",
+    buyerId: "p-feedlot-resistencia",
+    localityId: "resistencia",
+    title: "Pulpa de cítricos para suplementación",
+    category: "orujos_bagazos",
+    description: "Buscamos volumen sostenido para la próxima temporada.",
+    quantityTons: "150",
+    maxPricePerTon: null,
+    neededBy: new Date("2027-06-30"),
+    radiusKm: 200,
   },
 ];
 
 async function main() {
-  const existing = await db.user.findFirst({ select: { id: true } });
-  if (existing && !args.has("--reset")) {
-    console.log(
-      "La base ya tiene datos. Usá `npm run db:seed -- --reset` para volver a sembrar.",
-    );
-    return;
-  }
-
-  // Un hash (y una sal) por usuario, calculados fuera de la transacción.
-  const hashes = await Promise.all(
-    demoUsers.map(() => hashPassword(DEMO_PASSWORD)),
-  );
-
   await db.$transaction(async (tx) => {
-    if (args.has("--reset")) {
-      // Orden inverso a las FK. Sesiones, cuentas y membresías caen en cascada.
-      await tx.lot.deleteMany();
-      await tx.establishment.deleteMany();
-      await tx.organization.deleteMany();
-      await tx.user.deleteMany();
-      await tx.verification.deleteMany();
-    }
-
-    await tx.organization.createMany({ data: [orgA, orgB] });
-
-    for (const [i, u] of demoUsers.entries()) {
-      const userId = newId();
-      await tx.user.create({
-        data: {
-          id: userId,
-          email: u.email,
-          name: u.name,
-          emailVerified: true,
-          // Misma forma que crea Better Auth para email/contraseña.
-          accounts: {
-            create: {
-              id: newId(),
-              accountId: userId,
-              providerId: "credential",
-              password: hashes[i],
-            },
-          },
-          memberships: { create: { orgId: u.org, role: u.role } },
-        },
+    if (args.has("--reset-demo")) {
+      // Orden inverso a las FK: los acuerdos referencian propuestas y ofertas.
+      await tx.agreement.deleteMany();
+      await tx.proposal.deleteMany();
+      await tx.offer.deleteMany({
+        where: { id: { notIn: offers.map((o) => o.id) } },
+      });
+      await tx.demand.deleteMany({
+        where: { id: { notIn: demands.map((d) => d.id) } },
       });
     }
 
-    await tx.establishment.createMany({
-      data: [estEsperanza, estOmbu, estSanRoque],
-    });
-    await tx.lot.createMany({ data: demoLots });
+    for (const { id, ...data } of localities) {
+      await tx.locality.upsert({
+        where: { id },
+        create: { id, ...data },
+        update: data,
+      });
+    }
+    for (const { id, ...data } of users) {
+      await tx.user.upsert({
+        where: { id },
+        create: { id, ...data },
+        update: data,
+      });
+    }
+    // El update restaura todos los campos, incluido el stock original.
+    for (const { id, ...data } of offers) {
+      await tx.offer.upsert({
+        where: { id },
+        create: { id, ...data },
+        update: data,
+      });
+    }
+    for (const { id, ...data } of demands) {
+      await tx.demand.upsert({
+        where: { id },
+        create: { id, ...data },
+        update: { ...data, status: "open" },
+      });
+    }
   });
 
   console.log(
-    "Seed listo. Usuarios de demo (contraseña para todos: %s):",
-    DEMO_PASSWORD,
-  );
-  console.table(
-    demoUsers.map((u) => ({
-      email: u.email,
-      rol: u.role,
-      organización: u.org === orgA.id ? orgA.name : orgB.name,
-    })),
+    "Seed listo%s: %d localidades, %d personas, %d ofertas, %d demandas.",
+    args.has("--reset-demo") ? " (demo reiniciada)" : "",
+    localities.length,
+    users.length,
+    offers.length,
+    demands.length,
   );
 }
 

@@ -1,5 +1,5 @@
-/** Isotipo de SubMarket: una hoja con un ciclo de reaprovechamiento. */
-export function LogoMark({ className = "w-5 h-5" }: { className?: string }) {
+/** Isotipo de SubMarket: el símbolo de reciclaje de codigo-ui. */
+export function LogoMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -7,34 +7,43 @@ export function LogoMark({ className = "w-5 h-5" }: { className?: string }) {
       className={className}
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={2.2}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z" />
-      <path d="M5 19c3-4 6-7 10-10" />
-      <circle
-        cx="17.5"
-        cy="17.5"
-        r="2"
-        className="fill-amber-400 stroke-none"
-      />
+      <path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5" />
+      <path d="M11 19h8.2a1.8 1.8 0 0 0 1.5-2.6l-3.9-6.9" />
+      <path d="m15.5 4.8 2.3 4H10.6" />
+      <path d="m4.5 14.5 2.5 4.5 5-2" />
+      <path d="M20 14.5 17.5 19l-5-2" />
+      <path d="M11 3.5 8.5 8h5.5" />
     </svg>
   );
 }
 
-/** Marca completa: isotipo, nombre y tagline. */
-export function Logo() {
+/** Marca completa: isotipo, "subMarket" y la tagline. `inverted` es para fondos oscuros. */
+export function Logo({ inverted = false }: { inverted?: boolean }) {
   return (
-    <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-campo-600 text-white shadow-md shadow-campo-950/15 transition-colors group-hover:bg-campo-700">
-        <LogoMark className="h-6 w-6" />
+    <span className="flex min-w-0 select-none items-center gap-2.5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-emerald-200 shadow-xs transition-colors group-hover:bg-brand-700">
+        <LogoMark className="h-5 w-5" />
       </span>
-      <span className="min-w-0">
-        <span className="block text-lg font-bold leading-tight tracking-tight text-stone-950 dark:text-white">
-          Sub<span className="text-campo-600 dark:text-campo-300">Market</span>
+      <span className="flex min-w-0 flex-col">
+        <span className="flex items-baseline leading-none">
+          <span
+            className={`text-xl font-light tracking-tight ${inverted ? "text-gray-200" : "text-gray-800"}`}
+          >
+            sub
+          </span>
+          <span
+            className={`text-xl font-extrabold tracking-tight ${inverted ? "text-emerald-400" : "text-brand-600"}`}
+          >
+            Market
+          </span>
         </span>
-        <span className="hidden truncate text-[11px] leading-none text-stone-500 dark:text-stone-400 sm:block">
+        <span
+          className={`mt-0.5 truncate text-[10px] font-medium tracking-tight ${inverted ? "text-gray-400" : "text-gray-500"}`}
+        >
           Lo que sobra, vale.
         </span>
       </span>

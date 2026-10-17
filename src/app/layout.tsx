@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { DemoBanner } from "@/components/DemoBanner";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
+// Inter para el texto y Plus Jakarta Sans para los títulos, como codigo-ui.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["600", "700", "800"],
 });
 
 const title = "SubMarket · Subproductos agroindustriales NEA";
@@ -37,13 +37,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#2F6B3A",
+  themeColor: "#176B4D",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${jakarta.variable} ${plexMono.variable}`}>
-      <body className="min-h-dvh flex flex-col bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100 font-sans antialiased selection:bg-campo-200 dark:selection:bg-campo-900/60">
+    <html lang="es" className={`${inter.variable} ${jakarta.variable}`}>
+      <body className="flex min-h-dvh flex-col bg-page font-sans text-gray-800 antialiased selection:bg-brand-200">
         <DemoBanner />
         <SiteHeader />
         <main className="flex-1 w-full">{children}</main>

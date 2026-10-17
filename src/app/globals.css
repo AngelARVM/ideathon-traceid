@@ -1,37 +1,42 @@
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
+/* Solo tema claro (M6, F4). */
 
 @theme inline {
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-mono:
-    var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Paleta tomada del prototipo (prototype/): verde campo y tierra. */
+/* Paleta de codigo-ui: verde SubMarket (`brand-600` = #176B4D). */
 @theme {
-  --color-campo-50: #f2f7f3;
-  --color-campo-100: #e3ede4;
-  --color-campo-200: #c6dcce;
-  --color-campo-300: #9cc1a7;
-  --color-campo-400: #6fa67c;
-  --color-campo-500: #4a8d57;
-  --color-campo-600: #2f6b3a;
-  --color-campo-700: #26562f;
-  --color-campo-800: #204527;
-  --color-campo-900: #1a3921;
-  --color-campo-950: #0d1e11;
+  --color-brand-50: #effaf5;
+  --color-brand-100: #d8f3e7;
+  --color-brand-200: #b4e6d2;
+  --color-brand-300: #92d6bb;
+  --color-brand-400: #4fb88f;
+  --color-brand-500: #259571;
+  --color-brand-600: #176b4d;
+  --color-brand-700: #12553c;
+  --color-brand-800: #114735;
+  --color-brand-900: #0e3a2c;
+  --color-brand-950: #072018;
 
   --color-tierra-500: #b45309;
   --color-tierra-600: #92400e;
   --color-tierra-700: #78350f;
+
+  --color-page: #f5f7fa;
+  --color-hero: #f4f3ef;
+
+  --shadow-card:
+    0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-card-hover:
+    0 8px 24px -4px rgb(23 107 77 / 0.08), 0 4px 12px -2px rgb(0 0 0 / 0.05);
 }
 
+/* Cifras alineadas: stock, precios y totales. */
 .font-mono-num {
-  font-family: var(--font-mono);
-  font-feature-settings:
-    "tnum" 1,
-    "zero" 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .safe-bottom {
@@ -39,8 +44,33 @@
 }
 
 @layer base {
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+
   :focus-visible {
-    outline: 2px solid var(--color-campo-600);
+    outline: 2px solid var(--color-brand-600);
     outline-offset: 3px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
 }

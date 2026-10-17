@@ -36,7 +36,7 @@ export function ProposalForm({
   return (
     <form
       action={action}
-      className="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900"
+      className="flex flex-col gap-5 rounded-xl border border-gray-200 bg-white p-5 shadow-card sm:p-6"
     >
       {state?.ok === false && (
         <div className="flex flex-col gap-2">
@@ -44,7 +44,7 @@ export function ProposalForm({
           {state.existingProposalId && (
             <Link
               href={`/proposals/${state.existingProposalId}`}
-              className="text-sm font-semibold text-campo-700 underline dark:text-campo-300"
+              className="text-sm font-semibold text-brand-600 underline"
             >
               Ver la propuesta abierta
             </Link>
@@ -110,13 +110,21 @@ export function ProposalForm({
         />
       </Field>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-4 dark:border-stone-800">
-        <p className="text-sm text-stone-600 dark:text-stone-400">
-          Total estimado:{" "}
-          <span className="font-mono-num text-lg font-bold text-stone-950 dark:text-stone-50">
-            {total ? formatArs(total) : "—"}
-          </span>
-        </p>
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-brand-300 bg-brand-50 px-4 py-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase text-gray-500">
+            Subtotal de la propuesta
+          </p>
+          <p className="text-xs text-gray-500">
+            Tn × precio propuesto · sin flete
+          </p>
+        </div>
+        <span className="font-mono-num text-xl font-black text-brand-600">
+          {total ? formatArs(total) : "—"}
+        </span>
+      </div>
+
+      <div className="flex justify-end">
         <Button type="submit" disabled={pending}>
           {pending ? "Enviando…" : "Enviar propuesta"}
         </Button>

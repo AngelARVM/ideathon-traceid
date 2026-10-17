@@ -26,7 +26,7 @@ async function EditDemandContent({ params }: Props) {
   if (demand.buyerId !== persona.id || demand.status !== "open") notFound();
   const localities = await listLocalities();
   return (
-    <>
+    <div className="mx-auto max-w-4xl">
       <PageHeader
         title="Editar demanda"
         description="Los cambios actualizan las ofertas compatibles."
@@ -47,6 +47,6 @@ async function EditDemandContent({ params }: Props) {
           localityId: demand.localityId,
         }}
       />
-    </>
+    </div>
   );
 }

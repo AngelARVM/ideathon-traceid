@@ -3,17 +3,14 @@ import type { DecimalLike } from "@/lib/format";
 import { OFFER_STATUS_LABEL, PROPOSAL_STATUS_LABEL } from "@/lib/labels";
 
 const pill =
-  "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide";
+  "inline-flex shrink-0 items-center rounded border px-2 py-0.5 text-[11px] font-semibold shadow-xs";
 
 const tone = {
-  green:
-    "border-campo-200 bg-campo-50 text-campo-800 dark:border-campo-800 dark:bg-campo-950/60 dark:text-campo-200",
-  amber:
-    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200",
-  blue: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-200",
-  red: "border-red-200 bg-red-50 text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200",
-  stone:
-    "border-stone-200 bg-stone-100 text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300",
+  green: "border-brand-200 bg-brand-50 text-brand-700",
+  amber: "border-amber-200 bg-amber-50 text-amber-800",
+  blue: "border-blue-200 bg-blue-50 text-blue-700",
+  red: "border-red-200 bg-red-50 text-red-700",
+  stone: "border-gray-200 bg-gray-100 text-gray-600",
 };
 
 /** Estado de la oferta. Una oferta disponible sin stock se muestra "Agotada" (§8.1). */
@@ -46,6 +43,7 @@ const proposalTone: Record<ProposalStatus, string> = {
   confirmed: tone.green,
 };
 
+/** Estado de la propuesta (§8.2). */
 export function ProposalStatusBadge({ status }: { status: ProposalStatus }) {
   return (
     <span className={`${pill} ${proposalTone[status]}`}>

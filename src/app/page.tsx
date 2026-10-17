@@ -8,19 +8,44 @@ import { getPersona } from "@/lib/persona";
 
 export default function HomePage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="space-y-16 pb-20">
       <Suspense fallback={<HomeLoading />}>
         <HomeContent />
       </Suspense>
-      <HowItWorks />
     </div>
   );
 }
 
 async function HomeContent() {
   const persona = await getPersona();
-  if (!persona) return <PersonaPicker personas={await listDemoPersonas()} />;
+  if (!persona) {
+    return (
+      <>
+        <PersonaPicker personas={await listDemoPersonas()} />
+        <HowItWorks />
+      </>
+    );
+  }
+  const buyer = persona.role === "buyer";
   return (
-    <MarketplaceHome persona={persona} data={await getHomeData(persona)} />
+    <>
+      <MarketplaceHome persona={persona} data={await getHomeData(persona)} />
+      <HowItWorks
+        cta={
+          buyer
+            ? {
+                href: "/demands/new",
+                label: "Publicar una demanda",
+                question:
+                  "¿Buscás un material que no encontrás en el catálogo?",
+              }
+            : {
+                href: "/offers/new",
+                label: "Publicar un subproducto",
+                question: "¿Tenés subproductos en tu molino o aserradero?",
+              }
+        }
+      />
+    </>
   );
 }

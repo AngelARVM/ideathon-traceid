@@ -1,10 +1,17 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { type ReactNode, useActionState, useRef, useState } from "react";
+import { OfferCard, type OfferCardData } from "@/components/OfferCard";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { FormError } from "@/components/ui/FormError";
-import type { Province } from "@/generated/prisma/enums";
+import { Steps } from "@/components/ui/Steps";
+import {
+  Category,
+  type Presentation,
+  type Province,
+} from "@/generated/prisma/enums";
 import type { ActionResult } from "@/lib/action-result";
 import {
   CATEGORY_LABEL,
@@ -12,7 +19,7 @@ import {
   PRESENTATION_LABEL,
   PROVINCE_LABEL,
 } from "@/lib/labels";
-import type { OfferFormValues } from "@/lib/offers/schema";
+import type { OfferFormField, OfferFormValues } from "@/lib/offers/schema";
 
 type OfferAction = (
   prev: ActionResult | null,
@@ -28,11 +35,46 @@ type FormState = {
 
 export type LocalityOption = { id: string; name: string; province: Province };
 
-/** Formulario de alta y edición de ofertas. Si la acción falla, conserva lo escrito y marca los errores. */
+const STEPS = [
+  "Identificación",
+  "Volumen y precio",
+  "Ubicación y logística",
+  "Ficha técnica",
+];
+
+/** Paso de cada campo: si la acción devuelve `fieldErrors`, el wizard salta al primero. */
+const FIELD_STEP: Record<OfferFormField, number> = {
+  title: 0,
+  category: 0,
+  description: 0,
+  quantityTons: 1,
+  pricePerTon: 1,
+  status: 1,
+  estimatedDate: 1,
+  localityId: 2,
+  freight: 2,
+  hasWeighbridge: 2,
+  labAnalysis: 2,
+  humidityPct: 3,
+  calorificKcalKg: 3,
+  presentation: 3,
+};
+
+const errorSteps = (errors: Record<string, string>) => [
+  ...new Set(
+    Object.keys(errors).map((k) => FIELD_STEP[k as OfferFormField] ?? 0),
+  ),
+];
+
+/**
+ * Wizard de alta y edición de ofertas (el `PublishProductView` de codigo-ui). Todos los campos
+ * viven en un solo `<form>`: los pasos se ocultan con CSS, no se desmontan, y se envía una vez.
+ */
 export function OfferForm({
   action,
   initialValues,
   localities,
+  sellerName,
   offerId,
   submitLabel,
   cancelHref,
@@ -40,18 +82,22 @@ export function OfferForm({
   action: OfferAction;
   initialValues: OfferFormValues;
   localities: LocalityOption[];
+  sellerName: string;
   offerId?: string;
   submitLabel: string;
   cancelHref: string;
 }) {
+  const [step, setStep] = useState(0);
+  const [draft, setDraft] = useState<OfferFormValues>(initialValues);
+  const formRef = useRef<HTMLFormElement>(null);
+
   const [state, formAction, pending] = useActionState(
     async (prev: FormState, formData: FormData): Promise<FormState> => {
       const result = await action(prev.result, formData);
-      const values: OfferFormValues = {};
-      for (const [key, value] of formData.entries()) {
-        if (typeof value === "string") {
-          values[key as keyof OfferFormValues] = value;
-        }
+      const values = readValues(formData);
+      if (!result.ok && result.fieldErrors) {
+        const steps = errorSteps(result.fieldErrors);
+        if (steps.length > 0) setStep(Math.min(...steps));
       }
       return { result, values, attempt: prev.attempt + 1 };
     },
@@ -60,53 +106,149 @@ export function OfferForm({
 
   const errors =
     state.result && !state.result.ok ? (state.result.fieldErrors ?? {}) : {};
+  const last = step === STEPS.length - 1;
+
+  /** Valida con el navegador solo los campos del paso visible antes de avanzar. */
+  function next() {
+    const panel = formRef.current?.querySelector<HTMLElement>(
+      `[data-step="${step}"]`,
+    );
+    const fields = panel?.querySelectorAll<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >("input, select, textarea");
+    for (const f of fields ?? []) {
+      if (!f.checkValidity()) {
+        f.reportValidity();
+        return;
+      }
+    }
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6" noValidate>
+    <form
+      ref={formRef}
+      action={formAction}
+      onChange={(e) => setDraft(readValues(new FormData(e.currentTarget)))}
+      className="space-y-6"
+      noValidate
+    >
       {offerId && <input type="hidden" name="id" value={offerId} />}
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-card">
+        <Steps
+          steps={STEPS}
+          current={step}
+          invalid={errorSteps(errors)}
+          onSelect={setStep}
+        />
+      </div>
       <FormError
         message={state.result && !state.result.ok ? state.result.error : null}
       />
       <Fields
         key={state.attempt}
+        step={step}
         values={state.values}
+        draft={draft}
         errors={errors}
         localities={localities}
+        sellerName={sellerName}
       />
-      <div className="flex flex-wrap justify-end gap-2">
-        <LinkButton href={cancelHref} variant="secondary">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <LinkButton href={cancelHref} variant="ghost">
           Cancelar
         </LinkButton>
-        <Button type="submit" disabled={pending}>
-          {pending ? "Guardando…" : submitLabel}
-        </Button>
+        <div className="flex gap-2">
+          {step > 0 && (
+            <Button variant="secondary" onClick={() => setStep(step - 1)}>
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              Anterior
+            </Button>
+          )}
+          {/* `key` distintas: si React reusara el botón, el clic en "Siguiente" que lleva al último
+              paso lo encontraría ya convertido en submit y enviaría el formulario. */}
+          {last ? (
+            <Button key="submit" type="submit" disabled={pending}>
+              {pending ? "Guardando…" : submitLabel}
+            </Button>
+          ) : (
+            <Button key="next" onClick={next}>
+              Siguiente
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Button>
+          )}
+        </div>
       </div>
     </form>
   );
 }
 
-const section =
-  "grid gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-2 sm:p-6 dark:border-stone-800 dark:bg-stone-900";
-const sectionTitle =
-  "text-sm font-bold uppercase tracking-wider text-stone-500 sm:col-span-2 dark:text-stone-400";
+function readValues(formData: FormData): OfferFormValues {
+  const values: OfferFormValues = {};
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === "string") {
+      values[key as keyof OfferFormValues] = value;
+    }
+  }
+  return values;
+}
+
+function Panel({
+  index,
+  current,
+  title,
+  description,
+  children,
+}: {
+  index: number;
+  current: number;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <fieldset
+      data-step={index}
+      className={`rounded-xl border border-gray-200 bg-white shadow-card ${index === current ? "" : "hidden"}`}
+    >
+      <legend className="sr-only">{title}</legend>
+      <div className="border-b border-gray-100 px-5 py-4 sm:px-6">
+        <h2 className="text-lg font-bold text-gray-900">
+          {index + 1}. {title}
+        </h2>
+        <p className="mt-0.5 text-sm text-gray-500">{description}</p>
+      </div>
+      <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">{children}</div>
+    </fieldset>
+  );
+}
 
 function Fields({
+  step,
   values: v,
+  draft,
   errors,
   localities,
+  sellerName,
 }: {
+  step: number;
   values: OfferFormValues;
+  draft: OfferFormValues;
   errors: Record<string, string>;
   localities: LocalityOption[];
+  sellerName: string;
 }) {
   const [status, setStatus] = useState(v.status || "available");
   const invalid = (name: string) => (errors[name] ? true : undefined);
 
   return (
     <>
-      <fieldset className={section}>
-        <legend className="sr-only">Lote</legend>
-        <h2 className={sectionTitle}>Lote</h2>
+      <Panel
+        index={0}
+        current={step}
+        title="Identificación"
+        description="Qué subproducto ofrecés y cómo lo describirías."
+      >
         <div className="sm:col-span-2">
           <Field label="Título" htmlFor="title" error={errors.title}>
             <Input
@@ -120,42 +262,26 @@ function Fields({
             />
           </Field>
         </div>
-        <Field label="Categoría" htmlFor="category" error={errors.category}>
-          <Select
-            id="category"
-            name="category"
-            defaultValue={v.category ?? ""}
-            aria-invalid={invalid("category")}
-            required
-          >
-            <option value="" disabled>
-              Elegí una categoría
-            </option>
-            {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
+        <div className="sm:col-span-2">
+          <Field label="Categoría" htmlFor="category" error={errors.category}>
+            <Select
+              id="category"
+              name="category"
+              defaultValue={v.category ?? ""}
+              aria-invalid={invalid("category")}
+              required
+            >
+              <option value="" disabled>
+                Elegí una categoría
               </option>
-            ))}
-          </Select>
-        </Field>
-        <Field
-          label="Localidad de origen"
-          htmlFor="localityId"
-          error={errors.localityId}
-        >
-          <Select
-            id="localityId"
-            name="localityId"
-            defaultValue={v.localityId}
-            aria-invalid={invalid("localityId")}
-          >
-            {localities.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name} ({PROVINCE_LABEL[l.province]})
-              </option>
-            ))}
-          </Select>
-        </Field>
+              {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
         <div className="sm:col-span-2">
           <Field
             label="Descripción"
@@ -166,6 +292,7 @@ function Fields({
             <Textarea
               id="description"
               name="description"
+              rows={4}
               defaultValue={v.description}
               maxLength={1000}
               aria-invalid={invalid("description")}
@@ -173,11 +300,14 @@ function Fields({
             />
           </Field>
         </div>
-      </fieldset>
+      </Panel>
 
-      <fieldset className={section}>
-        <legend className="sr-only">Stock y precio</legend>
-        <h2 className={sectionTitle}>Stock y precio</h2>
+      <Panel
+        index={1}
+        current={step}
+        title="Volumen y precio"
+        description="Stock en toneladas y un precio de referencia para negociar."
+      >
         <Field
           label="Cantidad (Tn)"
           htmlFor="quantityTons"
@@ -208,19 +338,19 @@ function Fields({
           />
         </Field>
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
+          <span className="text-sm font-semibold text-gray-700">
             Disponibilidad
           </span>
           <div className="flex gap-2" role="radiogroup">
             {(
               [
-                ["available", "Disponible"],
-                ["estimated", "Estimada"],
+                ["available", "Lote inmediato"],
+                ["estimated", "Estimativo"],
               ] as const
             ).map(([value, label]) => (
               <label
                 key={value}
-                className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-stone-300 text-sm font-semibold has-checked:border-campo-500 has-checked:bg-campo-50 has-checked:text-campo-800 dark:border-stone-700 dark:has-checked:bg-campo-950/60 dark:has-checked:text-campo-200"
+                className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 transition hover:border-brand-300 has-checked:border-brand-600 has-checked:bg-brand-50 has-checked:text-brand-700"
               >
                 <input
                   type="radio"
@@ -228,16 +358,14 @@ function Fields({
                   value={value}
                   checked={status === value}
                   onChange={() => setStatus(value)}
-                  className="accent-campo-600"
+                  className="accent-brand-600"
                 />
                 {label}
               </label>
             ))}
           </div>
           {errors.status && (
-            <p className="text-xs font-medium text-red-600 dark:text-red-400">
-              {errors.status}
-            </p>
+            <p className="text-xs font-medium text-red-600">{errors.status}</p>
           )}
         </div>
         {status === "estimated" && (
@@ -256,61 +384,32 @@ function Fields({
             />
           </Field>
         )}
-      </fieldset>
+      </Panel>
 
-      <fieldset className={section}>
-        <legend className="sr-only">Características</legend>
-        <h2 className={sectionTitle}>Características (opcionales)</h2>
+      <Panel
+        index={2}
+        current={step}
+        title="Ubicación y logística"
+        description="Dónde está el lote y cómo se retira. El flete se coordina fuera de SubMarket."
+      >
         <Field
-          label="Humedad (%)"
-          htmlFor="humidityPct"
-          error={errors.humidityPct}
-        >
-          <Input
-            id="humidityPct"
-            name="humidityPct"
-            inputMode="decimal"
-            defaultValue={v.humidityPct}
-            aria-invalid={invalid("humidityPct")}
-          />
-        </Field>
-        <Field
-          label="Poder calorífico (kcal/kg)"
-          htmlFor="calorificKcalKg"
-          error={errors.calorificKcalKg}
-        >
-          <Input
-            id="calorificKcalKg"
-            name="calorificKcalKg"
-            inputMode="numeric"
-            defaultValue={v.calorificKcalKg}
-            aria-invalid={invalid("calorificKcalKg")}
-          />
-        </Field>
-        <Field
-          label="Presentación"
-          htmlFor="presentation"
-          error={errors.presentation}
+          label="Localidad de origen"
+          htmlFor="localityId"
+          error={errors.localityId}
         >
           <Select
-            id="presentation"
-            name="presentation"
-            defaultValue={v.presentation ?? ""}
-            aria-invalid={invalid("presentation")}
+            id="localityId"
+            name="localityId"
+            defaultValue={v.localityId}
+            aria-invalid={invalid("localityId")}
           >
-            <option value="">Sin especificar</option>
-            {Object.entries(PRESENTATION_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
+            {localities.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name} ({PROVINCE_LABEL[l.province]})
               </option>
             ))}
           </Select>
         </Field>
-      </fieldset>
-
-      <fieldset className={section}>
-        <legend className="sr-only">Logística</legend>
-        <h2 className={sectionTitle}>Logística</h2>
         <Field label="Flete" htmlFor="freight" error={errors.freight}>
           <Select
             id="freight"
@@ -325,12 +424,12 @@ function Fields({
             ))}
           </Select>
         </Field>
-        <label className="flex items-center gap-2 self-end pb-3 text-sm font-semibold text-stone-800 dark:text-stone-200">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 sm:col-span-2">
           <input
             type="checkbox"
             name="hasWeighbridge"
             defaultChecked={v.hasWeighbridge === "on"}
-            className="h-4 w-4 accent-campo-600"
+            className="h-4 w-4 accent-brand-600"
           />
           Báscula en planta
         </label>
@@ -351,7 +450,127 @@ function Fields({
             />
           </Field>
         </div>
-      </fieldset>
+      </Panel>
+
+      <Panel
+        index={3}
+        current={step}
+        title="Ficha técnica y confirmación"
+        description="Características opcionales y una vista previa de cómo se ve en el catálogo."
+      >
+        <div className="grid content-start gap-4">
+          <Field
+            label="Humedad (%)"
+            htmlFor="humidityPct"
+            error={errors.humidityPct}
+          >
+            <Input
+              id="humidityPct"
+              name="humidityPct"
+              inputMode="decimal"
+              defaultValue={v.humidityPct}
+              aria-invalid={invalid("humidityPct")}
+            />
+          </Field>
+          <Field
+            label="Poder calorífico (kcal/kg)"
+            htmlFor="calorificKcalKg"
+            error={errors.calorificKcalKg}
+          >
+            <Input
+              id="calorificKcalKg"
+              name="calorificKcalKg"
+              inputMode="numeric"
+              defaultValue={v.calorificKcalKg}
+              aria-invalid={invalid("calorificKcalKg")}
+            />
+          </Field>
+          <Field
+            label="Presentación"
+            htmlFor="presentation"
+            error={errors.presentation}
+          >
+            <Select
+              id="presentation"
+              name="presentation"
+              defaultValue={v.presentation ?? ""}
+              aria-invalid={invalid("presentation")}
+            >
+              <option value="">Sin especificar</option>
+              {Object.entries(PRESENTATION_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+        <div>
+          <p className="mb-1.5 text-sm font-semibold text-gray-700">
+            Vista previa
+          </p>
+          <Preview
+            draft={draft}
+            localities={localities}
+            sellerName={sellerName}
+          />
+        </div>
+      </Panel>
     </>
+  );
+}
+
+/** La oferta tal como se vería en el catálogo, con lo escrito hasta ahora. */
+function Preview({
+  draft: d,
+  localities,
+  sellerName,
+}: {
+  draft: OfferFormValues;
+  localities: LocalityOption[];
+  sellerName: string;
+}) {
+  const category = Object.values<string>(Category).includes(d.category ?? "")
+    ? (d.category as Category)
+    : null;
+  if (!category) {
+    return (
+      <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+        Elegí una categoría en el paso 1 para ver la vista previa.
+      </p>
+    );
+  }
+  const locality = localities.find((l) => l.id === d.localityId);
+  const decimal = (s?: string) => {
+    const raw = s ?? "";
+    const n = Number(
+      raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw,
+    );
+    return s && Number.isFinite(n) ? String(n) : null;
+  };
+  const offer: OfferCardData = {
+    id: "preview",
+    title: d.title || "Título de la oferta",
+    category,
+    status: d.status === "estimated" ? "estimated" : "available",
+    estimatedDate: d.estimatedDate || null,
+    quantityTons: decimal(d.quantityTons) ?? "0",
+    pricePerTon: decimal(d.pricePerTon),
+    humidityPct: decimal(d.humidityPct),
+    calorificKcalKg: d.calorificKcalKg
+      ? Number(d.calorificKcalKg) || null
+      : null,
+    presentation: (d.presentation || null) as Presentation | null,
+    hasWeighbridge: d.hasWeighbridge === "on",
+    locality: {
+      name: locality?.name ?? "—",
+      province: locality?.province ?? "corrientes",
+    },
+    seller: { name: sellerName },
+  };
+  return (
+    <div inert className="pointer-events-none">
+      <OfferCard offer={offer} />
+    </div>
   );
 }

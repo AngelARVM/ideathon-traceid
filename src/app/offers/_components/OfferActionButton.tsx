@@ -4,13 +4,12 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/Button";
 import type { ActionResult } from "@/lib/action-result";
 
-/** Botón de una acción sobre una oferta (retirar, marcar disponible), con confirmación opcional. */
+/** Botón de una acción sobre una oferta (retirar, marcar disponible). La confirmación la da un `Dialog`. */
 export function OfferActionButton({
   action,
   offerId,
   label,
   pendingLabel,
-  confirmMessage,
   variant = "secondary",
   size = "md",
 }: {
@@ -18,7 +17,6 @@ export function OfferActionButton({
   offerId: string;
   label: string;
   pendingLabel: string;
-  confirmMessage?: string;
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md";
 }) {
@@ -28,23 +26,12 @@ export function OfferActionButton({
   );
 
   return (
-    <form
-      action={formAction}
-      onSubmit={(e) => {
-        if (confirmMessage && !window.confirm(confirmMessage)) {
-          e.preventDefault();
-        }
-      }}
-      className="flex flex-col items-start gap-1"
-    >
+    <form action={formAction} className="flex flex-col items-start gap-1">
       <Button type="submit" variant={variant} size={size} disabled={pending}>
         {pending ? pendingLabel : label}
       </Button>
       {state && !state.ok && (
-        <p
-          role="alert"
-          className="text-xs font-medium text-red-600 dark:text-red-400"
-        >
+        <p role="alert" className="text-xs font-medium text-red-600">
           {state.error}
         </p>
       )}

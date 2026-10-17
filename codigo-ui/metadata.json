@@ -1,0 +1,7 @@
+{
+  "name": "ReValor NEA - Marketplace B2B de Subproductos Agroindustriales",
+  "description": "Plataforma B2B para comercializar y revalorizar subproductos agroindustriales y biomasa del Nordeste Argentino (Corrientes, Chaco, Misiones).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

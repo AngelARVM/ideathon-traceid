@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-/** Contenedor blanco con borde y sombra suave; `interactive` agrega el hover de codigo-ui. */
+/** Contenedor blanco con borde y sombra suave; `interactive` agrega un hover con borde y sombra. */
 export function Card({
   interactive = false,
   className = "",

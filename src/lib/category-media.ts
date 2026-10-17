@@ -1,7 +1,7 @@
 import type { Category } from "@/generated/prisma/enums";
 
 // Imágenes por categoría (M6, F5): el modelo no tiene fotos por oferta. Son locales, en
-// `public/images/categories/`, descargadas una vez de las que usaba codigo-ui (Unsplash).
+// `public/images/categories/`, descargadas una vez de Unsplash.
 
 export const CATEGORY_IMAGE: Record<Category, { src: string; alt: string }> = {
   cascarilla_arroz: {

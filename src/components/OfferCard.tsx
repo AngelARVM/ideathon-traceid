@@ -42,7 +42,7 @@ export type OfferCardData = {
   seller: { name: string };
 };
 
-/** Tarjeta de lote al estilo de codigo-ui (`ProductCard`). Toda la tarjeta enlaza al detalle. */
+/** Tarjeta de lote con la imagen de su categoría. Toda la tarjeta enlaza al detalle. */
 export function OfferCard({
   offer,
   distanceKm,

@@ -9,6 +9,7 @@ import { LinkButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CATEGORY_IMAGE } from "@/lib/category-media";
+import { parseTons } from "@/lib/decimal";
 import { formatArs, formatDate, formatKm, formatTons } from "@/lib/format";
 import { CATEGORY_LABEL, PROVINCE_LABEL } from "@/lib/labels";
 import { getOfferToPropose } from "@/lib/negotiation/queries";
@@ -19,9 +20,8 @@ export const metadata: Metadata = { title: "Proponer compra" };
 
 export default function ProposePage({
   params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+  searchParams,
+}: PageProps<"/offers/[id]/propose">) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <Suspense
@@ -29,14 +29,22 @@ export default function ProposePage({
           <div className="h-96 animate-pulse rounded-xl bg-gray-200/60" />
         }
       >
-        <ProposeContent params={params} />
+        <ProposeContent params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function ProposeContent({ params }: { params: Promise<{ id: string }> }) {
+async function ProposeContent({
+  params,
+  searchParams,
+}: PageProps<"/offers/[id]/propose">) {
   const { id } = await params;
+  // `?quantity=` desde la calculadora (§12.3): valor inicial; si no es válido, se ignora.
+  const { quantity } = await searchParams;
+  const parsedQuantity =
+    typeof quantity === "string" ? parseTons(quantity) : null;
+  const initialQuantity = parsedQuantity?.ok ? parsedQuantity.value : undefined;
   const persona = await requirePersona();
   if (persona.role !== "buyer") {
     return (
@@ -176,6 +184,7 @@ async function ProposeContent({ params }: { params: Promise<{ id: string }> }) {
           offerId={offer.id}
           stockTons={offer.quantityTons}
           referencePrice={offer.pricePerTon}
+          initialQuantity={initialQuantity}
         />
       )}
     </div>

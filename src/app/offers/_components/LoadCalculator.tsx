@@ -11,7 +11,8 @@ const toNumber = (s: string) =>
 
 /**
  * Calculadora de carga: Tn × precio de referencia, solo en el cliente y sin flete. El total es
- * referencial; el precio se negocia en la propuesta. `proposeHref` es `null` si no se puede proponer.
+ * referencial; el precio se negocia en la propuesta. `proposeHref` es `null` si no se puede proponer;
+ * si la cantidad es válida, viaja como `?quantity=` para precargar la propuesta (§12.3).
  */
 export function LoadCalculator({
   pricePerTon,
@@ -68,7 +69,11 @@ export function LoadCalculator({
       </div>
       {proposeHref && (
         <Link
-          href={proposeHref}
+          href={
+            valid
+              ? `${proposeHref}?quantity=${encodeURIComponent(tons.trim())}`
+              : proposeHref
+          }
           className="flex h-11 w-full items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white shadow-xs transition hover:bg-brand-700"
         >
           Proponer compra

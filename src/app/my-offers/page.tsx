@@ -1,4 +1,11 @@
-import { CalendarClock, Inbox, Package, Plus } from "lucide-react";
+import {
+  FileCheck2,
+  Hourglass,
+  Inbox,
+  Package,
+  Plus,
+  Wallet,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,8 +16,11 @@ import { Dialog } from "@/components/ui/Dialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Stat } from "@/components/ui/Stat";
 import { Tabs } from "@/components/ui/Tabs";
-import { formatDate, formatTons } from "@/lib/format";
+import { getSellerDashboard } from "@/lib/dashboard/queries";
+import { formatArs, formatDate, formatTons } from "@/lib/format";
 import { CATEGORY_LABEL } from "@/lib/labels";
+import { formatDateTime, shortId } from "@/lib/negotiation/format";
+import { listAgreementsFor } from "@/lib/negotiation/queries";
 import { markOfferAvailable, withdrawOffer } from "@/lib/offers/actions";
 import { listMyOffers, type MyOffer } from "@/lib/offers/queries";
 import { requirePersona } from "@/lib/persona";
@@ -18,7 +28,7 @@ import { OfferActionButton } from "../offers/_components/OfferActionButton";
 
 export const metadata: Metadata = { title: "Mis ofertas" };
 
-const TABS = ["inventory", "estimated", "withdrawn"] as const;
+const TABS = ["inventory", "estimated", "withdrawn", "agreements"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function MyOffersPage({
@@ -47,14 +57,17 @@ async function SellerPanel({
   const raw = (await searchParams).tab;
   const tab: Tab = TABS.includes(raw as Tab) ? (raw as Tab) : "inventory";
 
-  const offers = await listMyOffers(persona);
-  const byTab: Record<Tab, MyOffer[]> = {
+  const [offers, kpis, agreements] = await Promise.all([
+    listMyOffers(persona),
+    getSellerDashboard(persona),
+    listAgreementsFor(persona),
+  ]);
+  const byTab: Record<Exclude<Tab, "agreements">, MyOffer[]> = {
     inventory: offers.filter((o) => o.status === "available"),
     estimated: offers.filter((o) => o.status === "estimated"),
     withdrawn: offers.filter((o) => o.status === "withdrawn"),
   };
-  const pending = offers.reduce((n, o) => n + o.pendingProposals, 0);
-  const visible = byTab[tab];
+  const pending = kpis.pendingProposals;
 
   return (
     <div className="space-y-6">
@@ -81,19 +94,15 @@ async function SellerPanel({
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat
           label="Ofertas activas"
-          value={byTab.inventory.length}
+          value={kpis.activeOffers}
+          hint={`${formatTons(kpis.stockTons)} en stock`}
           icon={<Package className="h-4 w-4" aria-hidden />}
         />
         <Stat
-          label="Estimativos"
-          value={byTab.estimated.length}
-          icon={<CalendarClock className="h-4 w-4" aria-hidden />}
-        />
-        <Stat
-          label="Propuestas pendientes"
+          label="Para responder"
           value={pending}
           hint={
             pending > 0 ? (
@@ -109,11 +118,26 @@ async function SellerPanel({
           }
           icon={<Inbox className="h-4 w-4" aria-hidden />}
         />
-        {/* TODO(M7): seller-kpis — Tn en stock, propuestas que esperan al comprador, acuerdos, Tn y monto acordados. */}
-        <Stat label="Retiradas" value={byTab.withdrawn.length} />
+        <Stat
+          label="Esperan al comprador"
+          value={kpis.awaitingBuyer}
+          hint="Aceptadas o contraofertadas"
+          icon={<Hourglass className="h-4 w-4" aria-hidden />}
+        />
+        <Stat
+          label="Acuerdos"
+          value={kpis.agreements}
+          hint={`${formatTons(kpis.tonsAgreed)} acordadas`}
+          icon={<FileCheck2 className="h-4 w-4" aria-hidden />}
+        />
+        <Stat
+          label="Monto acordado"
+          value={formatArs(kpis.amountAgreed)}
+          hint="Declarado en los acuerdos"
+          icon={<Wallet className="h-4 w-4" aria-hidden />}
+        />
       </div>
 
-      {/* TODO(M7): seller-agreements-tab — pestaña Acuerdos con listAgreementsFor. */}
       <Tabs
         label="Secciones del panel"
         active={tab}
@@ -136,10 +160,18 @@ async function SellerPanel({
             href: "/my-offers?tab=withdrawn",
             count: byTab.withdrawn.length,
           },
+          {
+            key: "agreements",
+            label: "Acuerdos",
+            href: "/my-offers?tab=agreements",
+            count: agreements.length,
+          },
         ]}
       />
 
-      {visible.length === 0 ? (
+      {tab === "agreements" ? (
+        <AgreementsTable agreements={agreements} />
+      ) : byTab[tab].length === 0 ? (
         <EmptyState
           title={
             tab === "inventory"
@@ -174,13 +206,68 @@ async function SellerPanel({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {visible.map((offer) => (
+              {byTab[tab].map((offer) => (
                 <OfferRow key={offer.id} offer={offer} />
               ))}
             </tbody>
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+type SellerAgreement = Awaited<ReturnType<typeof listAgreementsFor>>[number];
+
+function AgreementsTable({ agreements }: { agreements: SellerAgreement[] }) {
+  if (agreements.length === 0) {
+    return (
+      <EmptyState
+        title="Todavía no hay acuerdos"
+        description="Cuando un comprador confirme una propuesta, su comprobante va a aparecer acá."
+      />
+    );
+  }
+  return (
+    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-card">
+      <table className="w-full min-w-[40rem] text-left text-sm">
+        <thead className="border-b border-gray-200 bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <tr>
+            <th className="px-4 py-3">Acuerdo</th>
+            <th className="px-4 py-3">Comprador</th>
+            <th className="px-4 py-3 text-right">Cantidad</th>
+            <th className="px-4 py-3 text-right">Monto</th>
+            <th className="px-4 py-3 text-right">Confirmado</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {agreements.map((a) => (
+            <tr key={a.id}>
+              <td className="px-4 py-3">
+                <Link
+                  href={`/agreements/${a.id}`}
+                  className="font-semibold text-gray-900 hover:text-brand-600"
+                >
+                  {a.offerTitle}
+                </Link>
+                <p className="font-mono-num text-xs text-gray-500">
+                  N° {shortId(a.id)} · {CATEGORY_LABEL[a.category]}
+                </p>
+              </td>
+              <td className="px-4 py-3 text-gray-700">{a.counterparty}</td>
+              <td className="px-4 py-3 text-right font-mono-num font-semibold text-gray-900">
+                {formatTons(a.quantityTons)}
+              </td>
+              <td className="px-4 py-3 text-right font-mono-num font-bold text-brand-600">
+                {formatArs(a.totalAmount)}
+              </td>
+              <td className="px-4 py-3 text-right text-xs text-gray-500">
+                {formatDateTime(a.confirmedAt)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -67,7 +67,7 @@ const errorSteps = (errors: Record<string, string>) => [
 ];
 
 /**
- * Wizard de alta y edición de ofertas (el `PublishProductView` de codigo-ui). Todos los campos
+ * Wizard de alta y edición de ofertas. Todos los campos
  * viven en un solo `<form>`: los pasos se ocultan con CSS, no se desmontan, y se envía una vez.
  */
 export function OfferForm({

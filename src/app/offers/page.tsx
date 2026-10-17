@@ -7,7 +7,12 @@ import { LinkButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Tag } from "@/components/ui/Tag";
-import { CATEGORY_LABEL, PRESENTATION_LABEL } from "@/lib/labels";
+import { formatArsPerTon, formatTons } from "@/lib/format";
+import {
+  CATEGORY_LABEL,
+  PRESENTATION_LABEL,
+  PROVINCE_LABEL,
+} from "@/lib/labels";
 import {
   type CatalogFilters as Filters,
   listCatalog,
@@ -15,6 +20,7 @@ import {
 } from "@/lib/offers/queries";
 import { requirePersona } from "@/lib/persona";
 import { CatalogFilters } from "./_components/CatalogFilters";
+import { CatalogSearch } from "./_components/CatalogSearch";
 import { catalogHref } from "./_components/catalog-url";
 import { FiltersDrawer } from "./_components/FiltersDrawer";
 
@@ -129,7 +135,10 @@ async function Catalog({
               </h2>
               {active.length > 0 && (
                 <Link
-                  href={catalogHref({ availability: filters.availability })}
+                  href={catalogHref({
+                    availability: filters.availability,
+                    sort: filters.sort,
+                  })}
                   className="text-xs font-semibold text-brand-600 hover:text-brand-700"
                 >
                   Limpiar
@@ -143,6 +152,7 @@ async function Catalog({
         </aside>
 
         <div className="min-w-0 space-y-4">
+          <CatalogSearch filters={filters} />
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white p-3 text-xs">
             <span className="text-gray-600">
               <span className="font-semibold text-gray-900">
@@ -162,7 +172,10 @@ async function Catalog({
               ))}
               {active.length > 0 && (
                 <Link
-                  href={catalogHref({ availability: filters.availability })}
+                  href={catalogHref({
+                    availability: filters.availability,
+                    sort: filters.sort,
+                  })}
                   className="text-gray-400 hover:text-gray-700"
                 >
                   Restablecer
@@ -201,12 +214,22 @@ async function Catalog({
   );
 }
 
-/** Tags de los filtros activos (sin el modo, que tiene su propio selector). */
+/** Tags de los filtros activos (sin el modo ni el orden, que tienen su propio selector). */
 function activeFilterTags(f: Filters) {
   const tags: { key: keyof Filters; label: string }[] = [];
+  if (f.q) tags.push({ key: "q", label: `“${f.q}”` });
   if (f.category)
     tags.push({ key: "category", label: CATEGORY_LABEL[f.category] });
   if (f.radius) tags.push({ key: "radius", label: `≤ ${f.radius} km` });
+  if (f.province)
+    tags.push({ key: "province", label: PROVINCE_LABEL[f.province] });
+  if (f.maxPrice) {
+    tags.push({ key: "maxPrice", label: `≤ ${formatArsPerTon(f.maxPrice)}` });
+  }
+  if (f.minStock) {
+    tags.push({ key: "minStock", label: `≥ ${formatTons(f.minStock)}` });
+  }
+  if (f.weighbridge) tags.push({ key: "weighbridge", label: "Con báscula" });
   if (f.presentation) {
     tags.push({
       key: "presentation",

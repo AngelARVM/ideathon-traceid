@@ -8,7 +8,7 @@ import { NavLink } from "@/components/NavLink";
 
 export type NavItem = { href: string; label: string };
 
-/** Drawer de navegación para mobile (el `Drawer` de codigo-ui), con los mismos enlaces del header. */
+/** Drawer de navegación para mobile, con los mismos enlaces del header. */
 export function MobileNav({
   items,
   publish,

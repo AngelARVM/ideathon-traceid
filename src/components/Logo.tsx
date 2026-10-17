@@ -1,4 +1,4 @@
-/** Isotipo de SubMarket: el símbolo de reciclaje de codigo-ui. */
+/** Isotipo de SubMarket: el símbolo de reciclaje. */
 export function LogoMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg

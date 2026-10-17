@@ -14,16 +14,21 @@ export function ProposalForm({
   offerId,
   stockTons,
   referencePrice,
+  initialQuantity,
 }: {
   offerId: string;
   stockTons: string;
   referencePrice: string | null;
+  /** Cantidad que trae `?quantity=` desde la calculadora, ya validada. */
+  initialQuantity?: string;
 }) {
   const [state, action, pending] = useActionState(
     createProposal.bind(null, offerId),
     null,
   );
-  const [quantity, setQuantity] = useState("");
+  const [quantity, setQuantity] = useState(
+    initialQuantity?.replace(".", ",") ?? "",
+  );
   const [price, setPrice] = useState(referencePrice ?? "");
   const [message, setMessage] = useState("");
 

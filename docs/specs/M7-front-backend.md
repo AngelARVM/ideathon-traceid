@@ -40,11 +40,11 @@ Extender `parseCatalogFilters` y `listCatalog` (`src/lib/offers/queries.ts`). To
 | Param | Valores | Efecto |
 |---|---|---|
 | `q` | texto, 2–60 caracteres | `title` o `description` contiene el texto, sin distinguir mayúsculas (`contains`, `mode: "insensitive"`) |
-| `provincia` | un `Province` | `locality.province` igual al valor |
-| `precioMax` | decimal > 0 | `pricePerTon ≤ valor`. Las ofertas sin precio se excluyen solo si se usa el filtro. |
-| `stockMin` | decimal > 0 | `quantityTons ≥ valor` |
-| `bascula` | `1` | `hasWeighbridge = true` |
-| `orden` | `distancia` (por defecto), `precio_asc`, `precio_desc`, `recientes`, `stock_desc` | Las agotadas siguen al final. Con orden por precio, las ofertas sin precio van después de las que lo tienen. |
+| `province` | un `Province` | `locality.province` igual al valor |
+| `maxPrice` | decimal > 0 | `pricePerTon ≤ valor`. Las ofertas sin precio se excluyen solo si se usa el filtro. |
+| `minStock` | decimal > 0 | `quantityTons ≥ valor` |
+| `weighbridge` | `1` | `hasWeighbridge = true` |
+| `sort` | `distance` (por defecto), `price_asc`, `price_desc`, `recent`, `stock_desc` | Las agotadas siguen al final. Con orden por precio, las ofertas sin precio van después de las que lo tienen. |
 
 - Se documenta en el contrato, en §9.2.
 - Se conecta a la barra lateral y a la barra de búsqueda y orden de `/offers`, y al buscador del hero de la home si M6.4 lo dejó.
@@ -86,7 +86,7 @@ El header lo muestra junto a "Propuestas", dentro de su propio `<Suspense fallba
 
 ### 2.5 De la calculadora a la propuesta
 
-La calculadora de `/offers/[id]` (M6.1) enlaza a `/offers/[id]/propose?cantidad=<Tn>`. La página de proponer lee `cantidad` como valor inicial, con `parseTons`. Si no es válida, la ignora. Se documenta en el contrato, en §12.3.
+La calculadora de `/offers/[id]` (M6.1) enlaza a `/offers/[id]/propose?quantity=<Tn>`. La página de proponer lee `quantity` como valor inicial, con `parseTons`. Si no es válida, la ignora. Se documenta en el contrato, en §12.3.
 
 ### 2.6 Limpieza
 
@@ -99,7 +99,7 @@ La calculadora de `/offers/[id]` (M6.1) enlaza a `/offers/[id]/propose?cantidad=
 
 Con la base local en `--reset-demo`, correr el guion §13 entero con las rutas en inglés y la UI nueva. Además:
 
-- en `/offers?q=pino&orden=precio_asc`, aparecen el aserrín ($ 31.000) y después los chips ($ 34.000);
+- en `/offers?q=pino&sort=price_asc`, aparecen el aserrín ($ 31.000) y después los chips ($ 34.000);
 - como Molinos del Iberá, después del paso 6 del guion, `/my-offers` muestra 1 acuerdo, 80 Tn acordadas y $ 2.200.000;
 - el contador del header aparece en el paso 4 (Molinos tiene 1 pendiente) y en el paso 5 (Granja tiene 1 para confirmar), y desaparece después de confirmar.
 
@@ -119,5 +119,5 @@ Con la base local en `--reset-demo`, correr el guion §13 entero con las rutas e
 - [ ] Las tablas de §1 y §2 están resueltas y no quedan `TODO(M7)`.
 - [ ] Los checks del recorrido (§2.7) pasan en local.
 - [ ] `codigo-ui/` ya no está en el repo y `npm run typecheck`, `npm run lint` y `npm run build` pasan.
-- [ ] El contrato documenta los filtros nuevos (§9.2) y el parámetro `cantidad` (§12.3).
+- [ ] El contrato documenta los filtros nuevos (§9.2) y el parámetro `quantity` (§12.3).
 - [ ] Sigue M5: tests, README y deploy, con las rutas en inglés.

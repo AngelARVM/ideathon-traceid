@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Province {
+  corrientes
+  misiones
+  chaco
+}
+
+enum Role {
+  buyer
+  seller
+}
+
+enum Category {
+  cascarilla_arroz   // "Cascarilla de arroz"
+  chips_forestales   // "Chips forestales"
+  aserrin_virutas    // "Aserrín y virutas"
+  biomasa_pellets    // "Biomasa y pellets"
+  orujos_bagazos     // "Orujos, pulpas y bagazos"
+}
+
+enum OfferStatus {
+  available  // "Disponible"
+  estimated  // "Estimada": requiere estimatedDate
+  withdrawn  // "Retirada": no se lista ni admite propuestas
+}
+
+enum Presentation {
+  granel    // "A granel"
+  big_bag   // "Big bags"
+  fardos    // "Fardos"
+}
+
+enum Freight {
+  retiro_en_planta   // "Retiro en planta"
+  entrega_vendedor   // "Entrega a cargo del vendedor"
+  a_convenir         // "A convenir"
+}
+
+enum DemandStatus {
+  open
+  withdrawn
+}
+
+enum ProposalStatus {
+  pending    // creada por el comprador, espera al vendedor
+  accepted   // el vendedor aceptó los términos originales
+  countered  // el vendedor contraofertó (una sola vez)
+  rejected   // rechazada por el vendedor (desde pending) o por el comprador (desde countered)
+  confirmed  // existe Agreement
+}
+
+model Locality {
+  id       String   @id
+  name     String
+  province Province
+  lat      Float
+  lng      Float
+
+  users   User[]
+  offers  Offer[]
+  demands Demand[]
+
+  @@map("localities")
+}
+
+model User {
+  id          String   @id
+  name        String   // nombre comercial visible ("Molinos del Iberá")
+  tagline     String?  // "Molino arrocero", visible en el selector
+  role        Role
+  localityId  String   @map("locality_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  locality          Locality    @relation(fields: [localityId], references: [id])
+  offers            Offer[]
+  demands           Demand[]
+  proposals         Proposal[]
+  agreementsAsSeller Agreement[] @relation("AgreementSeller")
+  agreementsAsBuyer  Agreement[] @relation("AgreementBuyer")
+
+  @@map("users")
+}
+
+model Offer {
+  id               String        @id
+  sellerId         String        @map("seller_id")
+  title            String
+  category         Category
+  description      String
+  quantityTons     Decimal       @map("quantity_tons") @db.Decimal(12, 3) // stock restante
+  pricePerTon      Decimal?      @map("price_per_ton") @db.Decimal(14, 2) // precio de referencia, opcional
+  status           OfferStatus
+  estimatedDate    DateTime?     @map("estimated_date") @db.Date
+  localityId       String        @map("locality_id")
+  humidityPct      Decimal?      @map("humidity_pct") @db.Decimal(5, 2)
+  calorificKcalKg  Int?          @map("calorific_kcal_kg")
+  presentation     Presentation?
+  freight          Freight       @default(a_convenir)
+  hasWeighbridge   Boolean       @default(false) @map("has_weighbridge")
+  labAnalysis      String?       @map("lab_analysis")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  seller     User        @relation(fields: [sellerId], references: [id])
+  locality   Locality    @relation(fields: [localityId], references: [id])
+  proposals  Proposal[]
+  agreements Agreement[]
+
+  @@index([status, category])
+  @@map("offers")
+}
+
+model Demand {
+  id             String       @id
+  buyerId        String       @map("buyer_id")
+  title          String
+  category       Category
+  description    String?
+  quantityTons   Decimal      @map("quantity_tons") @db.Decimal(12, 3)
+  maxPricePerTon Decimal?     @map("max_price_per_ton") @db.Decimal(14, 2)
+  neededBy       DateTime?    @map("needed_by") @db.Date
+  radiusKm       Int          @default(200) @map("radius_km")
+  localityId     String       @map("locality_id")
+  status         DemandStatus @default(open)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  buyer    User     @relation(fields: [buyerId], references: [id])
+  locality Locality @relation(fields: [localityId], references: [id])
+
+  @@index([status, category])
+  @@map("demands")
+}
+
+model Proposal {
+  id                  String         @id
+  offerId             String         @map("offer_id")
+  buyerId             String         @map("buyer_id")
+  quantityTons        Decimal        @map("quantity_tons") @db.Decimal(12, 3)
+  pricePerTon         Decimal        @map("price_per_ton") @db.Decimal(14, 2)
+  message             String?
+  status              ProposalStatus @default(pending)
+  counterQuantityTons Decimal?       @map("counter_quantity_tons") @db.Decimal(12, 3)
+  counterPricePerTon  Decimal?       @map("counter_price_per_ton") @db.Decimal(14, 2)
+  counterMessage      String?        @map("counter_message")
+  respondedAt         DateTime?      @map("responded_at") @db.Timestamptz(6)
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  offer     Offer      @relation(fields: [offerId], references: [id])
+  buyer     User       @relation(fields: [buyerId], references: [id])
+  agreement Agreement?
+
+  @@index([offerId, status])
+  @@index([buyerId, status])
+  @@map("proposals")
+}
+
+model Agreement {
+  id               String       @id
+  proposalId       String       @unique @map("proposal_id") // garantiza un acuerdo por propuesta
+  offerId          String       @map("offer_id")
+  sellerId         String       @map("seller_id")
+  buyerId          String       @map("buyer_id")
+  // Términos congelados
+  quantityTons     Decimal      @map("quantity_tons") @db.Decimal(12, 3)
+  pricePerTon      Decimal      @map("price_per_ton") @db.Decimal(14, 2)
+  totalAmount      Decimal      @map("total_amount") @db.Decimal(16, 2)
+  // Snapshot de la oferta al confirmar
+  offerTitle       String       @map("offer_title")
+  category         Category
+  originLocality   String       @map("origin_locality")    // nombre, no FK
+  humidityPct      Decimal?     @map("humidity_pct") @db.Decimal(5, 2)
+  calorificKcalKg  Int?         @map("calorific_kcal_kg")
+  presentation     Presentation?
+  freight          Freight
+  hasWeighbridge   Boolean      @map("has_weighbridge")
+  labAnalysis      String?      @map("lab_analysis")
+  closingComment   String?      @map("closing_comment")
+  confirmedAt      DateTime     @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id])
+  offer    Offer    @relation(fields: [offerId], references: [id])
+  seller   User     @relation("AgreementSeller", fields: [sellerId], references: [id])
+  buyer    User     @relation("AgreementBuyer", fields: [buyerId], references: [id])
+
+  @@index([sellerId])
+  @@index([buyerId])
+  @@map("agreements")
+}

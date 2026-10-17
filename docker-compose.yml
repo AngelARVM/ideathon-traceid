@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: traceid
+      POSTGRES_PASSWORD: traceid
+      POSTGRES_DB: traceid
+    ports:
+      # Puerto del host no estándar para no chocar con un Postgres local. Override: TRACEID_DB_PORT.
+      - "${TRACEID_DB_PORT:-54320}:5432"
+    volumes:
+      - traceid-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traceid -d traceid"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  traceid-pgdata:

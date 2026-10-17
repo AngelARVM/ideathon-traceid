@@ -468,9 +468,10 @@ Son las únicas superficies que un hito consume de otro. Cada una se fija en M0 
 | `src/lib/labels.ts` | `CATEGORY_LABEL`, `OFFER_STATUS_LABEL`, `PRESENTATION_LABEL`, `FREIGHT_LABEL`, `PROPOSAL_STATUS_LABEL`, `PROVINCE_LABEL`, en español |
 | `src/lib/decimal.ts` | `parseTons(s)` y `parsePrice(s)`: aceptan "1.234,5" o "1234.5", validan > 0 y la escala, y devuelven `string` normalizado o un error. Los usan los schemas zod de M1, M2 y M3. |
 | `src/lib/action-result.ts` | `type ActionResult<T = void> = { ok: true; data?: T } \| { ok: false; error: string; fieldErrors?: Record<string, string> }` |
-| `src/components/OfferCard.tsx` | `<OfferCard offer={OfferCardData} distanceKm?={number} />`: tarjeta estilo PDF que enlaza a `/offers/[id]`. `OfferCardData` se exporta desde el mismo archivo e incluye `id, title, category, status, estimatedDate, quantityTons (string), pricePerTon (string \| null), humidityPct, calorificKcalKg, presentation, hasWeighbridge, locality {name, province}, seller {name}`. |
+| `src/components/OfferCard.tsx` | `<OfferCard offer={OfferCardData} distanceKm?={number} />`: tarjeta estilo codigo-ui, con la imagen de la categoría, que enlaza a `/offers/[id]`. `OfferCardData` se exporta desde el mismo archivo e incluye `id, title, category, status, estimatedDate, quantityTons (string), pricePerTon (string \| null), humidityPct, calorificKcalKg, presentation, hasWeighbridge, locality {name, province}, seller {name}`. |
 | `src/components/StatusBadge.tsx` | `<OfferStatusBadge status quantityTons />` (con "Agotada") y `<ProposalStatusBadge status />` |
-| `src/components/ui/*` | `Button`, `LinkButton`, `Field`, `Input`, `Select`, `Textarea`, `FormError`, `PageHeader`, `EmptyState`: primitivas con Tailwind |
+| `src/components/ui/*` | `Button`, `LinkButton`, `Field`, `Input`, `Select`, `Textarea`, `FormError`, `PageHeader`, `EmptyState`: primitivas con Tailwind. M6.0 agrega `Card`, `Tag` (con `removeHref` para filtros activos), `Stat` (KPI), `Tabs` (enlaces con `?tab=`), `Steps` (indicador de wizard), `Dialog` (confirmación con `<dialog>` nativo, Client Component) y `Descriptions` (lista de etiqueta y valor). |
+| `src/lib/category-media.ts` | `CATEGORY_IMAGE: Record<Category, { src, alt }>`: imagen local por categoría (M6, F5). `OfferCard` la usa como portada. |
 
 Si un hito necesita una primitiva nueva, la crea **dentro de su propia carpeta**. Si después resulta útil para todos, se promueve en M5.
 

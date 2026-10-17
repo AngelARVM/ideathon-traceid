@@ -8,21 +8,25 @@ import type { ReactNode } from "react";
 export function NavLink({
   href,
   children,
+  onNavigate,
+  block = false,
 }: {
   href: string;
   children: ReactNode;
+  onNavigate?: () => void;
+  block?: boolean;
 }) {
   const pathname = usePathname();
   const active = pathname === href || pathname.startsWith(`${href}/`);
+  const look = block
+    ? `flex items-center justify-between rounded-md px-3 py-2 ${active ? "bg-brand-50 font-bold text-brand-700" : "font-medium text-gray-700 hover:bg-gray-100"}`
+    : `relative inline-flex shrink-0 items-center gap-1.5 text-sm transition-colors ${active ? "font-bold text-brand-600" : "font-medium text-gray-700 hover:text-gray-900"}`;
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       aria-current={active ? "page" : undefined}
-      className={`inline-flex h-9 shrink-0 items-center rounded-lg px-3 text-sm font-medium transition ${
-        active
-          ? "bg-campo-50 text-campo-800 dark:bg-campo-950/60 dark:text-campo-200"
-          : "text-stone-600 hover:bg-stone-100 hover:text-campo-700 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-campo-300"
-      }`}
+      className={look}
     >
       {children}
     </Link>

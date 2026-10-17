@@ -2,15 +2,15 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Logo } from "@/components/Logo";
+import { MobileNav, type NavItem } from "@/components/MobileNav";
 import { NavLink } from "@/components/NavLink";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { LinkButton } from "@/components/ui/Button";
 import type { Role } from "@/generated/prisma/enums";
 import { getPersona } from "@/lib/persona";
 
 // Navegación por rol (docs/00-mvp-spec.md §10).
-const NAV: Record<Role, { href: string; label: string }[]> = {
+const NAV: Record<Role, NavItem[]> = {
   seller: [
     { href: "/offers", label: "Explorar" },
     { href: "/demands", label: "Demandas" },
@@ -27,38 +27,32 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
   ],
 };
 
-const PUBLISH: Record<Role, { href: string; label: string }> = {
+const PUBLISH: Record<Role, NavItem> = {
   seller: { href: "/offers/new", label: "Publicar oferta" },
   buyer: { href: "/demands/new", label: "Publicar demanda" },
 };
 
+/** Header global al estilo de `Navbar` de codigo-ui. La persona se lee por request, en `<Suspense>`. */
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/95">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-3 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-gray-100 bg-white shadow-2xs">
+      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="group min-w-0"
+          className="group min-w-0 shrink-0"
           aria-label="SubMarket, ir al inicio"
         >
           <Logo />
         </Link>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* La persona se lee de la cookie por request: queda fuera del shell estático. */}
-          <Suspense fallback={<div className="h-10 w-40" />}>
-            <PersonaActions />
-          </Suspense>
-          <ThemeToggle />
-        </div>
+        <Suspense fallback={<div className="h-10 w-40" />}>
+          <PersonaNav />
+        </Suspense>
       </div>
-      <Suspense fallback={null}>
-        <RoleNav />
-      </Suspense>
     </header>
   );
 }
 
-async function PersonaActions() {
+async function PersonaNav() {
   const persona = await getPersona();
   if (!persona) {
     return (
@@ -67,39 +61,26 @@ async function PersonaActions() {
       </LinkButton>
     );
   }
+  const items = NAV[persona.role];
   const publish = PUBLISH[persona.role];
   return (
-    <>
-      <LinkButton
-        href={publish.href}
-        size="sm"
-        className="hidden sm:inline-flex"
-      >
-        <Plus className="h-4 w-4" aria-hidden />
-        {publish.label}
-      </LinkButton>
-      <PersonaSwitcher persona={persona} />
-    </>
-  );
-}
-
-async function RoleNav() {
-  const persona = await getPersona();
-  if (!persona) return null;
-  const publish = PUBLISH[persona.role];
-  return (
-    <nav
-      aria-label="Principal"
-      className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-3 pb-2 sm:px-6"
-    >
-      {NAV[persona.role].map((item) => (
-        <NavLink key={item.href} href={item.href}>
-          {item.label}
-        </NavLink>
-      ))}
-      <span className="sm:hidden">
-        <NavLink href={publish.href}>{publish.label}</NavLink>
+    <div className="flex min-w-0 items-center gap-2 lg:gap-5">
+      {/* TODO(M7): header-badge — contador de propuestas que esperan a la persona, junto a "Propuestas". */}
+      <nav aria-label="Principal" className="hidden items-center gap-5 lg:flex">
+        {items.map((item) => (
+          <NavLink key={item.href} href={item.href}>
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+      <span className="hidden sm:block">
+        <LinkButton href={publish.href} size="sm">
+          <Plus className="h-4 w-4" aria-hidden />
+          {publish.label}
+        </LinkButton>
       </span>
-    </nav>
+      <PersonaSwitcher persona={persona} />
+      <MobileNav items={items} publish={publish} />
+    </div>
   );
 }

@@ -64,17 +64,18 @@ async function PersonaNav() {
   }
   const items = NAV[persona.role];
   const publish = PUBLISH[persona.role];
+  const badge = (
+    <Suspense fallback={null}>
+      <PendingBadge persona={persona} />
+    </Suspense>
+  );
   return (
     <div className="flex min-w-0 items-center gap-2 lg:gap-5">
       <nav aria-label="Principal" className="hidden items-center gap-5 lg:flex">
         {items.map((item) => (
           <NavLink key={item.href} href={item.href}>
             {item.label}
-            {item.href === "/proposals" && (
-              <Suspense fallback={null}>
-                <PendingBadge persona={persona} />
-              </Suspense>
-            )}
+            {item.href === "/proposals" && badge}
           </NavLink>
         ))}
       </nav>
@@ -85,7 +86,7 @@ async function PersonaNav() {
         </LinkButton>
       </span>
       <PersonaSwitcher persona={persona} />
-      <MobileNav items={items} publish={publish} />
+      <MobileNav items={items} publish={publish} proposalsBadge={badge} />
     </div>
   );
 }

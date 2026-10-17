@@ -1,6 +1,6 @@
 # SubMarket — Especificación del MVP (contrato común)
 
-**Estado:** vigente desde el 17-10-2026. Resultado de la sesión de grilling sobre [`pivot/`](../pivot/). **Reemplaza** a `docs/legacy/**`, que describe TraceID y es solo antecedente histórico.
+**Estado:** vigente desde el 17-10-2026. Resultado de la sesión de grilling sobre [`pivot/`](./pivot/). Reemplaza a la documentación de TraceID, el producto anterior, que se eliminó del repo.
 
 Este documento es el **contrato compartido** por todos los hitos de [`docs/specs/`](./specs/). Si un hito necesita algo que contradice este documento, se cambia primero este documento y se avisa al resto del equipo; nunca se resuelve en silencio dentro de un hito. Cómo se reparte y se integra el trabajo: [`01-orchestration.md`](./01-orchestration.md).
 
